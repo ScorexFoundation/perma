@@ -1,9 +1,12 @@
 package scorex.perma.consensus
 
+import io.circe.Json
 import scorex.block.ConsensusData
+import scorex.crypto.encode.Base58
 import scorex.settings.SizedConstants._
 import scorex.transaction.box.proposition.PublicKey25519Proposition
 import shapeless.Sized
+import io.circe.syntax._
 
 case class PermaConsensusBlockData(parentId: Array[Byte],
                                    signature: Array[Byte],
@@ -14,4 +17,14 @@ case class PermaConsensusBlockData(parentId: Array[Byte],
   override val BlockIdLength: Int = 64
 
   lazy val blockId = signature
+
+  override val json: Json = {
+    "parentId" -> Base58.encode(parentId)
+    "signature" -> Base58.encode(signature)
+    "target" -> target
+    "puz" -> Base58.encode(puz.unsized)
+    "ticket" -> ticket.json
+    "producer" -> producer.address
+  }.asJson
+
 }
