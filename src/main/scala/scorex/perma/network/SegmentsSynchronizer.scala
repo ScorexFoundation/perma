@@ -3,11 +3,11 @@ package scorex.perma.network
 
 import akka.actor.ActorRef
 import scorex.app.Application
-import scorex.crypto.ads.merkle.AuthDataBlock
-import scorex.crypto.hash.FastCryptographicHash
+import scorex.crypto.hash.{Blake2b256, FastCryptographicHash}
 import scorex.network.NetworkController.{DataFromPeer, SendToNetwork}
 import scorex.network.message.{Message, MessageSpec}
 import scorex.network.{SendToChosen, ViewSynchronizer}
+import scorex.perma.consensus.PermaAuthData
 import scorex.perma.settings.PermaConstants._
 import scorex.storage.Storage
 import scorex.utils.ScorexLogging
@@ -20,7 +20,7 @@ import scala.util.Random
  * Some number of random peers are asked firstly.
  *
  */
-class SegmentsSynchronizer(application: Application, rootHash: Array[Byte], storage: Storage[Long, AuthDataBlock[DataSegment]])
+class SegmentsSynchronizer(application: Application, rootHash: Array[Byte], storage: Storage[Long, PermaAuthData])
   extends ViewSynchronizer with ScorexLogging {
 
   private val MaxSegmentsInMessage = 16
@@ -35,17 +35,18 @@ class SegmentsSynchronizer(application: Application, rootHash: Array[Byte], stor
 
       log.info("GetSegmentsMessage")
 
-      val segments: Map[DataSegmentIndex, AuthDataBlock[DataSegment]] =
+      val segments: Map[DataSegmentIndex, PermaAuthData] =
         Random.shuffle(indexes).take(MaxSegmentsInMessage).flatMap(i => storage.get(i).map(s => i -> s)).toMap
 
       val msg = Message(SegmentsMessageSpec, Right(segments), None)
       networkControllerRef ! SendToNetwork(msg, SendToChosen(Seq(remote)))
 
-    case DataFromPeer(msgId, segments: Map[DataSegmentIndex, AuthDataBlock[DataSegment]]@unchecked, remote)
+    case DataFromPeer(msgId, segments: Map[DataSegmentIndex, PermaAuthData]@unchecked, remote)
       if msgId == SegmentsMessageSpec.messageCode =>
       log.info(s"SegmentsMessage with ${segments.size} segments")
 
-      if (segments.forall(s => s._2.check(s._1, rootHash)(FastCryptographicHash))) {
+      val hf = Blake2b256 //TODO replace with FastCryptographicHash
+      if (segments.forall(s => s._2.check(rootHash)(hf))) {
         segments.foreach(s => storage.set(s._1, s._2))
         if (segments.nonEmpty) storage.commit()
       } else {

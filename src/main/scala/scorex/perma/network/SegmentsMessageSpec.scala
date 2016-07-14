@@ -1,33 +1,37 @@
 package scorex.perma.network
 
 import com.google.common.primitives.{Bytes, Ints, Longs}
-import scorex.crypto.ads.merkle.AuthDataBlock
 import scorex.network.message.Message.MessageCode
 import scorex.network.message.MessageSpec
+import scorex.perma.consensus.PermaAuthData
 import scorex.perma.settings.PermaConstants.{DataSegment, DataSegmentIndex}
 
 import scala.util.Try
 
 
-object SegmentsMessageSpec extends MessageSpec[Map[DataSegmentIndex, AuthDataBlock[DataSegment]]] {
+object SegmentsMessageSpec extends MessageSpec[Map[DataSegmentIndex,PermaAuthData]] {
   override val messageCode: MessageCode = 51: Byte
 
-  override def serializeData(data: Map[DataSegmentIndex, AuthDataBlock[DataSegment]]): Array[Byte] = {
-    val lengthBytes = Bytes.ensureCapacity(Ints.toByteArray(data.size), 4, 0)
-    if (data.nonEmpty) {
-      val authDataBlockSize = AuthDataBlock.encode(data.head._2).length
-      val authDataBlockSizeBytes = Bytes.ensureCapacity(Ints.toByteArray(authDataBlockSize), 4, 0)
+  override def serializeData(data: Map[DataSegmentIndex, PermaAuthData]): Array[Byte] = {
+    /*
+        val lengthBytes = Bytes.ensureCapacity(Ints.toByteArray(data.size), 4, 0)
+        if (data.nonEmpty) {
+          val authDataBlockSize = AuthDataBlock.encode(data.head._2).length
+          val authDataBlockSizeBytes = Bytes.ensureCapacity(Ints.toByteArray(authDataBlockSize), 4, 0)
 
-      data.foldLeft(lengthBytes ++ authDataBlockSizeBytes) { case (bs, dataSegment) =>
-        bs ++ Bytes.ensureCapacity(Longs.toByteArray(dataSegment._1), 8, 0) ++
-          Bytes.ensureCapacity(AuthDataBlock.encode(dataSegment._2), authDataBlockSize, 0)
-      }
+          data.foldLeft(lengthBytes ++ authDataBlockSizeBytes) { case (bs, dataSegment) =>
+            bs ++ Bytes.ensureCapacity(Longs.toByteArray(dataSegment._1), 8, 0) ++
+              Bytes.ensureCapacity(AuthDataBlock.encode(dataSegment._2), authDataBlockSize, 0)
+          }
     } else {
       lengthBytes
     }
+    */
+    ???
   }
 
-  override def deserializeData(bytes: Array[Byte]): Try[Map[DataSegmentIndex, AuthDataBlock[DataSegment]]] = Try {
+  override def deserializeData(bytes: Array[Byte]): Try[Map[DataSegmentIndex, PermaAuthData]] = Try {
+/*
     val length = Ints.fromByteArray(bytes.slice(0, 4))
     if (length > 0) {
       val authDataBlockSize = Ints.fromByteArray(bytes.slice(4, 8))
@@ -40,6 +44,8 @@ object SegmentsMessageSpec extends MessageSpec[Map[DataSegmentIndex, AuthDataBlo
     } else {
       Map.empty
     }
+*/
+    ???
   }
 
   override val messageName: String = "SegmentsMessage"

@@ -7,14 +7,18 @@ import akka.http.scaladsl.server.Route
 import io.circe.syntax._
 import io.swagger.annotations._
 import scorex.api.http.{ApiRoute, CommonApiFunctions}
+import scorex.block.TransactionalData
 import scorex.crypto.encode.Base58
 import scorex.perma.consensus.PermaConsensusModule
 import scorex.settings.Settings
+import scorex.transaction.Transaction
+import scorex.transaction.box.proposition.PublicKey25519Proposition
 
 @Path("/consensus")
 @Api(value = "/consensus", description = "Consensus-related calls")
-class PermaConsensusApiRoute[TX, TD](consensusModule: PermaConsensusModule[TX, TD], override val settings: Settings)
-                                    (implicit val context: ActorRefFactory)
+class PermaConsensusApiRoute[TX <: Transaction[PublicKey25519Proposition, TX], TData <: TransactionalData[TX]]
+(consensusModule: PermaConsensusModule[TX, TData], override val settings: Settings)
+(implicit val context: ActorRefFactory)
   extends ApiRoute with CommonApiFunctions {
 
   override val route: Route =

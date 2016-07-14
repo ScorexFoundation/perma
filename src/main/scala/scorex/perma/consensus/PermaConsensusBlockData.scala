@@ -1,9 +1,7 @@
 package scorex.perma.consensus
 
-import scorex.block.{Block, TransactionalData, ConsensusData}
-import scorex.consensus.nxt.NxtLikeConsensusBlockData
+import scorex.block.ConsensusData
 import scorex.settings.SizedConstants._
-import scorex.transaction.Transaction
 import scorex.transaction.box.proposition.PublicKey25519Proposition
 import shapeless.Sized
 

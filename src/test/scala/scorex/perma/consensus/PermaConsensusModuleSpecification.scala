@@ -4,8 +4,6 @@ import java.io.{File, RandomAccessFile}
 
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
-import scorex.crypto.EllipticCurveImpl
-import scorex.crypto.ads.merkle.{AuthDataBlock, MerkleTree}
 import scorex.crypto.hash.FastCryptographicHash
 import scorex.perma.settings.PermaConstants.DataSegment
 import scorex.perma.settings.{PermaConstants, PermaSettings}
@@ -15,7 +13,8 @@ import scorex.storage.Storage
 import scorex.utils._
 
 class PermaConsensusModuleSpecification extends PropSpec with PropertyChecks with GeneratorDrivenPropertyChecks
-  with Matchers with ScorexLogging {
+with Matchers with ScorexLogging {
+/*
 
   implicit val settings = new Settings with PermaSettings {
     override lazy val filename = "settings-test.json"
@@ -67,5 +66,6 @@ class PermaConsensusModuleSpecification extends PropSpec with PropertyChecks wit
     }
   }
 
+*/
 
 }

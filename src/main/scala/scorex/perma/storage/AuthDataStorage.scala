@@ -1,21 +1,21 @@
 package scorex.perma.storage
 
 import org.h2.mvstore.{MVMap, MVStore}
-import scorex.crypto.ads.merkle.AuthDataBlock
-import scorex.perma.settings.PermaConstants.{DataSegment, DataSegmentIndex}
+import scorex.perma.consensus.PermaAuthData
+import scorex.perma.settings.PermaConstants.DataSegmentIndex
 import scorex.storage.Storage
 
-class AuthDataStorage(fileOpt: Option[String]) extends Storage[DataSegmentIndex, AuthDataBlock[DataSegment]] {
+class AuthDataStorage(fileOpt: Option[String]) extends Storage[DataSegmentIndex, PermaAuthData] {
 
   val db = fileOpt match {
     case Some(file) => new MVStore.Builder().fileName(file).compress().open()
     case None => new MVStore.Builder().open()
   }
-  val segments: MVMap[DataSegmentIndex, AuthDataBlock[DataSegment]] = db.openMap("segments")
+  val segments: MVMap[DataSegmentIndex, PermaAuthData] = db.openMap("segments")
 
-  override def set(key: DataSegmentIndex, value: AuthDataBlock[DataSegment]): Unit = segments.put(key, value)
+  override def set(key: DataSegmentIndex, value: PermaAuthData): Unit = segments.put(key, value)
 
-  override def get(key: DataSegmentIndex): Option[AuthDataBlock[DataSegment]] = Option(segments.get(key))
+  override def get(key: DataSegmentIndex): Option[PermaAuthData] = Option(segments.get(key))
 
   override def close(): Unit = db.close()
 

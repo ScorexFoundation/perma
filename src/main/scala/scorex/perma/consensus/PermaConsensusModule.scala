@@ -3,7 +3,7 @@ package scorex.perma.consensus
 import scorex.block.{Block, TransactionalData}
 import scorex.consensus.{ConsensusSettings, ConsensusModule, StoredBlockchain}
 import scorex.crypto.authds.merkle.{MerklePath, MerkleAuthData}
-import scorex.crypto.hash.{CryptographicHash, FastCryptographicHash}
+import scorex.crypto.hash.{Blake2b256, CryptographicHash, FastCryptographicHash}
 import scorex.crypto.hash.FastCryptographicHash.Digest
 import scorex.perma.settings.PermaConstants
 import scorex.perma.settings.PermaConstants._
@@ -18,12 +18,9 @@ import scorex.transaction.wallet.Wallet
 import scorex.utils.{NTP, ScorexLogging}
 import scorex.utils.Random
 import shapeless.Sized
-
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.{Failure, Try, Success}
-
-class PermaAuthData[HashFunction <: CryptographicHash](data: Array[Byte], proof: MerklePath[DataSegment])
-  extends MerkleAuthData[DataSegment](data, proof)
 
 /**
  * Data and functions related to a Permacoin consensus protocol
@@ -42,6 +39,7 @@ class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX], TDa
   val TargetRecalculation = PermaConstants.targetRecalculation
   val AvgDelay = PermaConstants.averageDelay
   val Hash = FastCryptographicHash
+  implicit val hashFunction:CryptographicHash = Blake2b256 //TODO replace to FastCryptographicHash when scrypto will use Sized[]
 
   val SSize = 32
   val GenesisCreator = PublicKey25519Proposition(Sized.wrap(Array.fill(32)(0: Byte)))
@@ -64,8 +62,8 @@ class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX], TDa
   override def id(block: PermaBlock): BlockId = block.consensusData.blockId
 
 
-  override def genesisData: PermaConsensusBlockData = {
-    val t = Ticket(GenesisCreator.publicKey, Array.fill(PermaConsensusBlockField.SLength)(0: Byte), IndexedSeq())
+  override val genesisData: PermaConsensusBlockData = {
+    val t = Ticket(GenesisCreator.publicKey, Array.fill(SSize)(0: Byte), IndexedSeq())
     PermaConsensusBlockData(Array.fill(BlockIdLength)(0: Byte), Array.fill(BlockIdLength)(0: Byte),
       InitialTarget, Hash(Array(0: Byte)), t, GenesisCreator)
   }
@@ -117,15 +115,9 @@ class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX], TDa
         val target = calcTarget(parent)
         if (validate(pubKey, puz, target, ticket, rootHash)) {
           val timestamp = NTP.correctedTime()
-          log.info("Build Block: Valid ticket generated")
-          val consData = PermaConsensusBlockData(parent.consensusData.blockId, Array(), target, puz, ticket, pubKey)
-
-          log.info("Build Block: packed consensus data")
-          val transData = transactionalModule.packUnconfirmed()
-          log.info("Build Block: packed transaction data")
-          val toSign = new Block(Version, timestamp, consData, transData)
-          val sig = privKey.sign(toSign.bytes).proofBytes
-          Some(new Block(Version, timestamp, consData.copy(signature = sig), transData))
+          val tData = transactionalModule.packUnconfirmed()
+          val parentId = parent.consensusData.blockId
+          Some(PermaBlockBuilder.buildAndSign[TX,TData](tData, Version, timestamp, parentId, target, puz, ticket, privKey))
         } else {
           None
         }
@@ -181,7 +173,8 @@ class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX], TDa
       val rc = calculateIndex(pk,
         BigInt(1, Hash(puz ++ pk ++ proofs(i - 1).signature.signature)).mod(PermaConstants.l).toInt)
 
-      segment.check(rootHash) && {
+      val check = segment.check(rootHash)
+      check && {
         val message: Array[Byte] = Hash(puz ++ pk ++ sigs(i - 1).signature ++ segment.data)
         val sig = sigs(i)
         sig.isValid(acc, message)

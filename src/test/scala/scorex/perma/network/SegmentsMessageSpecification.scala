@@ -4,14 +4,13 @@ import java.io.{File, FileOutputStream}
 
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
-import scorex.crypto.ads.merkle.MerkleTree
 import scorex.crypto.hash.FastCryptographicHash
 import scorex.perma.settings.PermaConstants
 
 import scala.util.Random
 
 class SegmentsMessageSpecification extends PropSpec with PropertyChecks with GeneratorDrivenPropertyChecks with Matchers {
-
+/*
   val segmentsMessageSp = SegmentsMessageSpec
   val getSegmentsMessageSpec = GetSegmentsMessageSpec
   val (treeDirName: String, _, tempFile: String) = generateFile(PermaConstants.n.toInt)
@@ -60,5 +59,5 @@ class SegmentsMessageSpecification extends PropSpec with PropertyChecks with Gen
     fos.write(data)
     fos.close()
     (treeDirName, treeDir, tempFile)
-  }
+  }*/
 }
