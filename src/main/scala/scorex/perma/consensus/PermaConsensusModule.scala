@@ -82,8 +82,7 @@ class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX], TDa
       val puz = generatePuz(parent)
       val puzIsValid = f.puz.unsized sameElements puz.unsized
       val targetIsValid = f.target == calcTarget(parent)
-      //      val ticketIsValid = validate(publicKey, f.puz, f.target, f.ticket, rootHash)
-      val ticketIsValid = true
+      val ticketIsValid = true // TODO
       if (puzIsValid && targetIsValid && ticketIsValid)
         true
       else {

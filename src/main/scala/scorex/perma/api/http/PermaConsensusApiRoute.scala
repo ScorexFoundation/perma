@@ -4,24 +4,18 @@ import javax.ws.rs.Path
 
 import akka.actor.ActorRefFactory
 import akka.http.scaladsl.server.Route
+import io.circe.syntax._
 import io.swagger.annotations._
-import play.api.libs.json.Json
 import scorex.api.http.{ApiRoute, CommonApiFunctions}
-import scorex.app.Application
 import scorex.crypto.encode.Base58
 import scorex.perma.consensus.PermaConsensusModule
-
+import scorex.settings.Settings
 
 @Path("/consensus")
 @Api(value = "/consensus", description = "Consensus-related calls")
-class PermaConsensusApiRoute(override val application: Application)
-                            (implicit val context: ActorRefFactory)
+class PermaConsensusApiRoute[TX, TD](consensusModule: PermaConsensusModule[TX, TD], override val settings: Settings)
+                                    (implicit val context: ActorRefFactory)
   extends ApiRoute with CommonApiFunctions {
-
-  private val consensusModule = application.consensusModule.asInstanceOf[PermaConsensusModule]
-  private val blockStorage = application.blockStorage
-
-  val blockchain = blockStorage.history
 
   override val route: Route =
     pathPrefix("consensus") {
@@ -33,7 +27,7 @@ class PermaConsensusApiRoute(override val application: Application)
   def target: Route = {
     path("target") {
       getJsonRoute {
-        Json.obj("target" -> consensusModule.consensusBlockData(blockchain.lastBlock).target.toString)
+        ("target" -> consensusModule.lastBlock.consensusData.target).asJson
       }
     }
   }
@@ -46,10 +40,8 @@ class PermaConsensusApiRoute(override val application: Application)
   def targetId: Route = {
     path("target" / Segment) { case encodedSignature =>
       getJsonRoute {
-        withBlock(blockchain, encodedSignature) { block =>
-          Json.obj(
-            "target" -> consensusModule.consensusBlockData(block).target.toString
-          )
+        withBlock(consensusModule, encodedSignature) { block =>
+          ("target" -> block.consensusData.target).asJson
         }
       }
     }
@@ -60,7 +52,7 @@ class PermaConsensusApiRoute(override val application: Application)
   def puz: Route = {
     path("puz") {
       getJsonRoute {
-        Json.obj("puz" -> Base58.encode(consensusModule.generatePuz(blockchain.lastBlock)))
+        ("puz" -> Base58.encode(consensusModule.lastBlock.consensusData.puz)).asJson
       }
     }
   }
@@ -73,10 +65,8 @@ class PermaConsensusApiRoute(override val application: Application)
   def puzId: Route = {
     path("puz" / Segment) { case encodedSignature =>
       getJsonRoute {
-        withBlock(blockchain, encodedSignature) { block =>
-          Json.obj(
-            "puz" -> Base58.encode(consensusModule.consensusBlockData(block).puz)
-          )
+        withBlock(consensusModule, encodedSignature) { block =>
+          ("baseTarget" -> Base58.encode(block.consensusData.puz)).asJson
         }
       }
     }
@@ -87,7 +77,7 @@ class PermaConsensusApiRoute(override val application: Application)
   def algo: Route = {
     path("algo") {
       getJsonRoute {
-        Json.obj("consensusAlgo" -> "perma")
+        ("consensusAlgo" -> "nxt").asJson
       }
     }
   }
