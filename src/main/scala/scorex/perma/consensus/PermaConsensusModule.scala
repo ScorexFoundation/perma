@@ -1,41 +1,37 @@
 package scorex.perma.consensus
 
-import akka.actor.ActorRef
-import scorex.account.{Account, PrivateKeyAccount, PublicKeyAccount}
-import scorex.block.{TransactionalData, Block, BlockField}
-import scorex.consensus.nxt.NxtLikeConsensusBlockData
-import scorex.consensus.{StoredBlockchain, ConsensusModule}
-import scorex.consensus.nxt.NxtLikeConsensusBlockData
-import scorex.crypto.EllipticCurveImpl
-import scorex.crypto.ads.merkle.AuthDataBlock
-import scorex.crypto.hash.CryptographicHash.Digest
-import scorex.crypto.hash.FastCryptographicHash
+import scorex.block.{Block, TransactionalData}
+import scorex.consensus.{ConsensusSettings, ConsensusModule, StoredBlockchain}
+import scorex.crypto.authds.merkle.{MerklePath, MerkleAuthData}
+import scorex.crypto.hash.{CryptographicHash, FastCryptographicHash}
 import scorex.crypto.hash.FastCryptographicHash.Digest
-import scorex.crypto.singing.SigningFunctions.{PrivateKey, PublicKey}
-import scorex.network.NetworkController.SendToNetwork
-import scorex.network.SendToRandom
-import scorex.network.message.Message
-import scorex.perma.network.GetSegmentsMessageSpec
 import scorex.perma.settings.PermaConstants
 import scorex.perma.settings.PermaConstants._
+import scorex.settings.Settings
 import scorex.settings.SizedConstants._
 import scorex.storage.Storage
-import scorex.transaction.TransactionModule
+import scorex.transaction._
 import scorex.transaction.box.proposition.PublicKey25519Proposition
-import scorex.utils.{NTP, ScorexLogging, randomBytes}
+import scorex.transaction.proof.Signature25519
+import scorex.transaction.state.PrivateKey25519Holder
+import scorex.transaction.wallet.Wallet
+import scorex.utils.{NTP, ScorexLogging}
+import scorex.utils.Random
 import shapeless.Sized
 
-import scala.collection.concurrent.TrieMap
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.util.{Failure, Success, Try}
-import scorex.transaction._
+import scala.util.{Failure, Try, Success}
+
+class PermaAuthData[HashFunction <: CryptographicHash](data: Array[Byte], proof: MerklePath[DataSegment])
+  extends MerkleAuthData[DataSegment](data, proof)
 
 /**
  * Data and functions related to a Permacoin consensus protocol
  */
 class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX], TData <: TransactionalData[TX]]
-(rootHash: Sized[Array[Byte], Nat32], networkControllerOpt: Option[ActorRef] = None)
+(rootHash: Sized[Array[Byte], Nat32], val settings: Settings with ConsensusSettings,
+ override val transactionalModule: TransactionModule[PublicKey25519Proposition, TX, TData])
+(implicit val authDataStorage: Storage[Long, PermaAuthData])
   extends ConsensusModule[PublicKey25519Proposition, TX, TData, PermaConsensusBlockData]
   with StoredBlockchain[PublicKey25519Proposition, PermaConsensusBlockData, TX, TData]
   with ScorexLogging {
@@ -47,24 +43,47 @@ class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX], TDa
   val AvgDelay = PermaConstants.averageDelay
   val Hash = FastCryptographicHash
 
+  val SSize = 32
   val GenesisCreator = PublicKey25519Proposition(Sized.wrap(Array.fill(32)(0: Byte)))
   val Version: Byte = 2
 
-  type PermaBlock = Block[PublicKey25519Proposition, TData, PermaConsensusBlockData]
+  type PubKey = PublicKey25519Proposition
+  type PermaBlock = Block[PubKey, TData, PermaConsensusBlockData]
+  type TM = TransactionModule[PubKey, TX, TData]
 
   private def miningReward(block: PermaBlock): Long = BlockReward
 
-  private def blockGenerator(block: PermaBlock): PublicKey25519Proposition = block.consensusData.producer
+  private def blockGenerator(block: PermaBlock): PubKey = block.consensusData.producer
 
-  def isValid[TT](block: PermaBlock)(implicit transactionModule: TransactionModule[TT]): Boolean = {
-    val f = consensusBlockData(block)
+  override val BlockIdLength: Int = 64
+
+  override def producers(block: PermaBlock): Seq[PubKey] = Seq(blockGenerator(block))
+
+  override def parentId(block: PermaBlock): BlockId = block.consensusData.parentId
+
+  override def id(block: PermaBlock): BlockId = block.consensusData.blockId
+
+
+  override def genesisData: PermaConsensusBlockData = {
+    val t = Ticket(GenesisCreator.publicKey, Array.fill(PermaConsensusBlockField.SLength)(0: Byte), IndexedSeq())
+    PermaConsensusBlockData(Array.fill(BlockIdLength)(0: Byte), Array.fill(BlockIdLength)(0: Byte),
+      InitialTarget, Hash(Array(0: Byte)), t, GenesisCreator)
+  }
+
+  override val MaxRollback: Int = settings.MaxRollback
+  override val dataFolderOpt: Option[String] = settings.dataDirOpt
+
+
+  override def isValid(block: PermaBlock): Boolean = {
+    val f = block.consensusData
 
     parent(block).exists { parent =>
       val publicKey = blockGenerator(block).publicKey
       val puz = generatePuz(parent)
       val puzIsValid = f.puz.unsized sameElements puz.unsized
       val targetIsValid = f.target == calcTarget(parent)
-      val ticketIsValid = validate(publicKey, f.puz, f.target, f.ticket, rootHash)
+      //      val ticketIsValid = validate(publicKey, f.puz, f.target, f.ticket, rootHash)
+      val ticketIsValid = true
       if (puzIsValid && targetIsValid && ticketIsValid)
         true
       else {
@@ -74,122 +93,57 @@ class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX], TDa
     }
   }
 
-  def feesDistribution(block: PermaBlock): Map[Account, Long] =
-    Map(blockGenerator(block) -> (miningReward(block) + block.transactions.map(_.fee).sum))
+  /**
+   * Puzzle to a new generate block on top of $block
+   */
+  def generatePuz(block: PermaBlock): Digest = Hash(block.consensusData.puz.unsized ++ block.consensusData.ticket.s)
 
-  def generators(block: PermaBlock): Seq[Account] = Seq(blockGenerator(block))
+  def feesDistribution(block: PermaBlock): Map[PubKey, Long] =
+    Map(blockGenerator(block) -> (miningReward(block) + transactionalModule.totalFee(block.transactionalData)))
 
-  def blockScore(block: PermaBlock)(implicit transactionModule: TransactionModule[_]): BigInt = {
-    val score = initialTargetPow - log2(consensusBlockData(block).target)
+  def blockScore(block: PermaBlock): BigInt = {
+    val score = initialTargetPow - log2(block.consensusData.target)
     if (score > 0) score else 1
   }
 
-  def generateNextBlock[TT](account: PrivateKeyAccount)
-                           (implicit transactionModule: TransactionModule[TT]): Future[Option[Block]] = Future {
-    val parent = transactionModule.blockStorage.history.lastBlock
+  override def generateNextBlock(wallet: Wallet[_ <: PubKey, _ <: TM]): Future[Option[PermaBlock]] = Future {
+    val parent = lastBlock
     val puz = generatePuz(parent)
 
-    val keyPair = (account.privateKey, account.publicKey)
-    val ticketTry = generate(keyPair, puz)
+    val privKey: PrivateKey25519Holder = ???
+    val pubKey = privKey.publicCommitment
+    val ticketTry = generate(privKey, puz)
     ticketTry match {
       case Success(ticket) =>
         val target = calcTarget(parent)
-        if (validate(keyPair._2, puz, target, ticket, rootHash)) {
+        if (validate(pubKey, puz, target, ticket, rootHash)) {
           val timestamp = NTP.correctedTime()
           log.info("Build Block: Valid ticket generated")
-          val consData = PermaConsensusBlockData(target, puz, ticket)
+          val consData = PermaConsensusBlockData(parent.consensusData.blockId, Array(), target, puz, ticket, pubKey)
+
           log.info("Build Block: packed consensus data")
-          val transData = transactionModule.packUnconfirmed()
+          val transData = transactionalModule.packUnconfirmed()
           log.info("Build Block: packed transaction data")
-          val blockTry = Try(Block.buildAndSign(Version,
-            timestamp,
-            parent.uniqueId,
-            consData,
-            transData,
-            account))
-          blockTry.recoverWith {
-            case e =>
-              log.error("Failed to build block:", e)
-              Failure(e)
-          }.toOption
+          val toSign = new Block(Version, timestamp, consData, transData)
+          val sig = privKey.sign(toSign.bytes).proofBytes
+          Some(new Block(Version, timestamp, consData.copy(signature = sig), transData))
         } else {
           None
         }
       case Failure(t) =>
-        val segmentIds: Seq[DataSegmentIndex] = 1.to(PermaConstants.l).map(i => calculateIndex(account.publicKey, i - 1))
-          .filterNot(authDataStorage.containsKey)
-        if (segmentIds.nonEmpty) {
-          val msg = Message(GetSegmentsMessageSpec, Right(segmentIds), None)
-          if (networkControllerOpt.isDefined) {
-            networkControllerOpt.get ! SendToNetwork(msg, SendToRandom)
-          }
-          log.warn(s"Failed to generate new ticket, ${segmentIds.length} segments required")
-          throw new NotEnoughSegments(segmentIds)
-        } else throw t
+        ???
     }
   }
 
-  override def consensusBlockData(block: PermaBlock): PermaConsensusBlockData = block.consensusDataField.value match {
-    case b: PermaConsensusBlockData => b
-    case m => throw new AssertionError(s"Only PermaLikeConsensusBlockData is available, $m given")
-  }
+  private val NoSig = Signature25519(Array[Byte]())
 
-  override def parseBytes(bytes: Array[Byte]): Try[PermaConsensusBlockField] =
-    PermaConsensusBlockField.parse(bytes)
+  private[consensus] def generate(acc: PrivateKey25519Holder, puz: Array[Byte]): Try[Ticket] = Try {
 
-  override def genesisData: PermaConsensusBlockField =
-    PermaConsensusBlockField(PermaConsensusBlockData(
-      InitialTarget,
-      Array.fill(PermaConsensusBlockField.PuzLength)(0: Byte),
-      Ticket(GenesisCreator.publicKey, Array.fill(PermaConsensusBlockField.SLength)(0: Byte), IndexedSeq())
-    ))
-
-  override def formBlockData(data: PermaConsensusBlockData): BlockField[PermaConsensusBlockData] =
-    PermaConsensusBlockField(data)
-
-  /**
-   * Puzzle to a new generate block on top of $block
-   */
-  def generatePuz(block: PermaBlock): Digest = Hash(consensusBlockData(block).puz ++ consensusBlockData(block).ticket.s)
-
-  private val NoSig = Array[Byte]()
-
-  private[consensus] def validate(publicKey: PublicKey,
-                                  puz: Array[Byte],
-                                  target: BigInt,
-                                  t: Ticket,
-                                  rootHash: Digest): Boolean = Try {
-    val proofs = t.proofs
-    require(proofs.size == PermaConstants.k)
-    require(t.s.length == SSize)
-
-    val sigs = NoSig +: proofs.map(_.signature)
-    val ris = proofs.map(_.segmentIndex)
-    require(ris(0) == calculateIndex(publicKey, (BigInt(1, Hash(puz ++ publicKey ++ t.s)) % PermaConstants.l).toInt))
-
-    val partialProofsCheck = 1.to(PermaConstants.k).foldLeft(true) { case (partialResult, i) =>
-      val segment = proofs(i - 1).segment
-      val rc = calculateIndex(publicKey,
-        BigInt(1, Hash(puz ++ publicKey ++ proofs(i - 1).signature)).mod(PermaConstants.l).toInt)
-
-      segment.check(ris(i - 1), rootHash)() && {
-        val hi = Hash(puz ++ publicKey ++ sigs(i - 1) ++ segment.data)
-        EllipticCurveImpl.verify(sigs(i), hi, publicKey)
-      } && (ris.length == i || rc == ris(i))
-    }
-    partialProofsCheck && (ticketScore(t) < target)
-  }.getOrElse(false)
-
-  private[consensus] def ticketScore(t: Ticket): BigInt = if (t.proofs.nonEmpty) {
-    BigInt(1, Hash(t.proofs.map(_.signature).reduce(_ ++ _)))
-  } else 0
-
-  private[consensus] def generate(keyPair: (PrivateKey, PublicKey), puz: Array[Byte]): Try[Ticket] = Try {
-
-    val (privateKey, publicKey) = keyPair
+    val privateKey = acc.secret.unsized
+    val publicKey = acc.publicCommitment.publicKey.unsized
 
     //scratch-off for the Local-POR lottery
-    val s = randomBytes(SSize)
+    val s = Random.randomBytes(SSize)
 
     val sig0 = NoSig
     val r1 = calculateIndex(publicKey, (BigInt(1, Hash(puz ++ publicKey ++ s)) % PermaConstants.l).toInt)
@@ -199,9 +153,9 @@ class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX], TDa
     ) {
       case ((ri, sig_prev, seq), _) =>
         val segment = authDataStorage.get(ri).get
-        val hi = Hash(puz ++ publicKey ++ sig_prev ++ segment.data)
-        val sig = EllipticCurveImpl.sign(privateKey, hi)
-        val rNext = calculateIndex(publicKey, BigInt(1, Hash(puz ++ publicKey ++ sig)).mod(PermaConstants.l).toInt)
+        val hi = Hash(puz ++ publicKey ++ sig_prev.signature ++ segment.data)
+        val sig = acc.sign(hi)
+        val rNext = calculateIndex(publicKey, BigInt(1, Hash(puz ++ publicKey ++ sig.signature)).mod(PermaConstants.l).toInt)
 
         (rNext, sig, seq :+ PartialProof(sig, ri, segment))
     }._3.toIndexedSeq.ensuring(_.size == PermaConstants.k)
@@ -209,28 +163,46 @@ class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX], TDa
     Ticket(publicKey, s, proofs)
   }
 
+  private[consensus] def validate(acc: PubKey,
+                                  puz: Array[Byte],
+                                  target: BigInt,
+                                  t: Ticket,
+                                  rootHash: Digest): Boolean = Try {
+    val pk = acc.publicKey.unsized
+    val proofs = t.proofs
+    require(proofs.size == PermaConstants.k)
+    require(t.s.length == SSize)
+
+    val sigs = NoSig +: proofs.map(_.signature)
+    val ris = proofs.map(_.segmentIndex)
+    require(ris.head == calculateIndex(pk, (BigInt(1, Hash(puz ++ pk ++ t.s)) % PermaConstants.l).toInt))
+
+    val partialProofsCheck = 1.to(PermaConstants.k).foldLeft(true) { case (partialResult, i) =>
+      val segment = proofs(i - 1).segment
+      val rc = calculateIndex(pk,
+        BigInt(1, Hash(puz ++ pk ++ proofs(i - 1).signature.signature)).mod(PermaConstants.l).toInt)
+
+      segment.check(rootHash) && {
+        val message: Array[Byte] = Hash(puz ++ pk ++ sigs(i - 1).signature ++ segment.data)
+        val sig = sigs(i)
+        sig.isValid(acc, message)
+      } && (ris.length == i || rc == ris(i))
+    }
+    partialProofsCheck && (ticketScore(t) < target)
+  }.getOrElse(false)
+
+
+  private[consensus] def ticketScore(t: Ticket): BigInt = if (t.proofs.nonEmpty) {
+    BigInt(1, Hash(t.proofs.map(_.signature.signature).reduce(_ ++ _)))
+  } else 0
+
+
   //calculate index of i-th segment
-  private[consensus] def calculateIndex(pubKey: PublicKey, i: Int): Long =
+  private[consensus] def calculateIndex(pubKey: Array[Byte], i: Int): Long =
     BigInt(1, Hash(pubKey ++ BigInt(i).toByteArray)).mod(PermaConstants.n).toLong
 
-  private val targetBuf = TrieMap[String, BigInt]()
-
-  private def calcTarget(block: PermaBlock)(implicit transactionModule: TransactionModule[_]): BigInt = {
-    val trans = transactionModule.blockStorage.history
-    val currentTarget = consensusBlockData(block).target
-    val height = trans.heightOf(block).get
-    if (height % TargetRecalculation == 0 && height > TargetRecalculation) {
-      def calc = {
-        val lastAvgDuration: BigInt = trans.averageDelay(block, TargetRecalculation).get
-        val newTarget = currentTarget * lastAvgDuration / 1000 / AvgDelay
-        log.debug(s"Height: $height, target:$newTarget vs $currentTarget, lastAvgDuration:$lastAvgDuration")
-        newTarget
-      }
-      targetBuf.getOrElseUpdate(block.encodedId, calc)
-    } else {
-      currentTarget
-    }
-  }
+  //TODO make configurable
+  private def calcTarget(block: PermaBlock): BigInt = InitialTarget
 
   private def log2(i: BigInt): BigInt = BigDecimal(math.log(i.doubleValue()) / math.log(2)).toBigInt()
 }

@@ -68,6 +68,7 @@ dependencyOverrides in ThisBuild ++= Set(
   "org.scala-stm" % "scala-stm_2.11" % "0.7",
   "org.scalacheck" % "scalacheck_2.11" % "1.12.5",
   "org.scalactic" % "scalactic_2.11" % "2.3.0-SNAP2",
+  "org.scalactic" % "scalactic_2.11" % "2.3.0-SNAP2",
   "org.scalatest" % "scalatest_2.11" % "2.3.0-SNAP2",
   "org.scorexfoundation" % "scorex-basics_2.11" % "2.0.0-M4",
   "org.scoverage" % "scalac-scoverage-plugin_2.11" % "1.1.1",
