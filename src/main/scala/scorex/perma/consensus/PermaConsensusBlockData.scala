@@ -1,6 +1,6 @@
 package scorex.perma.consensus
 
-import io.circe.Json
+import io.circe.{Decoder, Json}
 import scorex.block.ConsensusData
 import scorex.crypto.encode.Base58
 import scorex.settings.SizedConstants._
@@ -26,5 +26,11 @@ case class PermaConsensusBlockData(parentId: Array[Byte],
     "ticket" -> ticket.json
     "producer" -> producer.address
   }.asJson
+
+}
+
+object PermaConsensusBlockData {
+
+  Decoder
 
 }
