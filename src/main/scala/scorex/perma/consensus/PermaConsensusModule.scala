@@ -1,10 +1,9 @@
 package scorex.perma.consensus
 
 import scorex.block.{Block, TransactionalData}
-import scorex.consensus.{ConsensusSettings, ConsensusModule, StoredBlockchain}
-import scorex.crypto.authds.merkle.{MerklePath, MerkleAuthData}
-import scorex.crypto.hash.{Blake2b256, CryptographicHash, FastCryptographicHash}
+import scorex.consensus.{ConsensusModule, ConsensusSettings, StoredBlockchain}
 import scorex.crypto.hash.FastCryptographicHash.Digest
+import scorex.crypto.hash.{Blake2b256, CryptographicHash, FastCryptographicHash}
 import scorex.perma.settings.PermaConstants
 import scorex.perma.settings.PermaConstants._
 import scorex.settings.Settings
@@ -15,19 +14,19 @@ import scorex.transaction.box.proposition.PublicKey25519Proposition
 import scorex.transaction.proof.Signature25519
 import scorex.transaction.state.PrivateKey25519Holder
 import scorex.transaction.wallet.Wallet
-import scorex.utils.{NTP, ScorexLogging}
-import scorex.utils.Random
+import scorex.utils.{NTP, Random, ScorexLogging}
 import shapeless.Sized
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.util.{Failure, Try, Success}
+import scala.util.{Failure, Success, Try}
 
 /**
  * Data and functions related to a Permacoin consensus protocol
  */
 class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX], TData <: TransactionalData[TX]]
 (rootHash: Sized[Array[Byte], Nat32], val settings: Settings with ConsensusSettings,
- override val transactionalModule: TransactionModule[PublicKey25519Proposition, TX, TData])
+ override val transactionalModule: TransactionalModule[PublicKey25519Proposition, TX, TData])
 (implicit val authDataStorage: Storage[Long, PermaAuthData])
   extends ConsensusModule[PublicKey25519Proposition, TX, TData, PermaConsensusBlockData]
   with StoredBlockchain[PublicKey25519Proposition, PermaConsensusBlockData, TX, TData]
@@ -39,7 +38,7 @@ class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX], TDa
   val TargetRecalculation = PermaConstants.targetRecalculation
   val AvgDelay = PermaConstants.averageDelay
   val Hash = FastCryptographicHash
-  implicit val hashFunction:CryptographicHash = Blake2b256 //TODO replace to FastCryptographicHash when scrypto will use Sized[]
+  implicit val hashFunction: CryptographicHash = Blake2b256 //TODO replace to FastCryptographicHash when scrypto will use Sized[]
 
   val SSize = 32
   val GenesisCreator = PublicKey25519Proposition(Sized.wrap(Array.fill(32)(0: Byte)))
@@ -47,7 +46,7 @@ class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX], TDa
 
   type PubKey = PublicKey25519Proposition
   type PermaBlock = Block[PubKey, TData, PermaConsensusBlockData]
-  type TM = TransactionModule[PubKey, TX, TData]
+  type TM = TransactionalModule[PubKey, TX, TData]
 
   private def miningReward(block: PermaBlock): Long = BlockReward
 

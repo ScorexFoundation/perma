@@ -6,9 +6,9 @@ import scorex.transaction.proof.Signature25519
 import io.circe.syntax._
 
 case class PartialProof(signature: Signature25519, segmentIndex: Long, segment: PermaAuthData) {
-  lazy val json: Json = {
-    "signature" -> Base58.encode(signature.signature)
-    "segmentIndex" -> segmentIndex
+  lazy val json: Json = Map(
+    "signature" -> Base58.encode(signature.signature).asJson,
+    "segmentIndex" -> segmentIndex.asJson,
     "segment" -> segment.json
-  }.asJson
+  ).asJson
 }

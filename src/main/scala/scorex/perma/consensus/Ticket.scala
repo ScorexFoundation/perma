@@ -8,10 +8,10 @@ case class Ticket(publicKey: Array[Byte],
                   s: Array[Byte],
                   proofs: IndexedSeq[PartialProof]) {
 
-  lazy val json: Json = (
-    "publicKey" -> Base58.encode(publicKey),
-    "s" -> Base58.encode(s),
-    "proofs" -> proofs.map(_.json)
+  lazy val json: Json = Map(
+    "publicKey" -> Base58.encode(publicKey).asJson,
+    "s" -> Base58.encode(s).asJson,
+    "proofs" -> proofs.map(_.json).asJson
     ).asJson
 }
 

@@ -8,12 +8,12 @@ import scorex.crypto.hash.CryptographicHash
 
 class PermaAuthData(data: Array[Byte], proof: MerklePath[CryptographicHash])
   extends MerkleAuthData[CryptographicHash](data, proof) {
-  lazy val json: Json = {
-    "data" -> Base58.encode(data)
-    "proof" -> {
-      "index" -> proof.index
-      "hashes" -> proof.hashes.map(Base58.encode)
-    }.asJson
-  }.asJson
+  lazy val json: Json = Map(
+    "data" -> Base58.encode(data).asJson,
+    "proof" -> Map(
+      "index" -> proof.index.asJson,
+      "hashes" -> proof.hashes.map(Base58.encode).asJson
+    ).asJson
+  ).asJson
 }
 

@@ -18,15 +18,16 @@ case class PermaConsensusBlockData(parentId: Array[Byte],
 
   lazy val blockId = signature
 
-  override val json: Json = {
-    "parentId" -> Base58.encode(parentId)
-    "signature" -> Base58.encode(signature)
-    "target" -> target
-    "puz" -> Base58.encode(puz.unsized)
-    "ticket" -> ticket.json
-    "producer" -> producer.address
-  }.asJson
+  override lazy val json: Json = Map(
+    "parentId" -> Base58.encode(parentId).asJson,
+    "signature" -> Base58.encode(signature).asJson,
+    "target" -> target.asJson,
+    "puz" -> Base58.encode(puz.unsized).asJson,
+    "ticket" -> ticket.json,
+    "producer" -> producer.address.asJson
+  ).asJson
 
+  override val bytes: Array[Byte] = Array()
 }
 
 object PermaConsensusBlockData {
