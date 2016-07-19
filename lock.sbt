@@ -27,12 +27,12 @@ dependencyOverrides in ThisBuild ++= Set(
   "com.typesafe" % "config" % "1.3.0",
   "com.typesafe" % "ssl-config-akka_2.11" % "0.2.1",
   "com.typesafe" % "ssl-config-core_2.11" % "0.2.1",
-  "com.typesafe.akka" % "akka-actor_2.11" % "2.4.7",
-  "com.typesafe.akka" % "akka-http-core_2.11" % "2.4.7",
-  "com.typesafe.akka" % "akka-http-experimental_2.11" % "2.4.7",
+  "com.typesafe.akka" % "akka-actor_2.11" % "2.4.8",
+  "com.typesafe.akka" % "akka-http-core_2.11" % "2.4.8",
+  "com.typesafe.akka" % "akka-http-experimental_2.11" % "2.4.8",
   "com.typesafe.akka" % "akka-http-spray-json-experimental_2.11" % "2.4.7",
-  "com.typesafe.akka" % "akka-parsing_2.11" % "2.4.7",
-  "com.typesafe.akka" % "akka-stream_2.11" % "2.4.7",
+  "com.typesafe.akka" % "akka-parsing_2.11" % "2.4.8",
+  "com.typesafe.akka" % "akka-stream_2.11" % "2.4.8",
   "com.typesafe.play" % "play-datacommons_2.11" % "2.4.6",
   "com.typesafe.play" % "play-functional_2.11" % "2.4.6",
   "com.typesafe.play" % "play-iteratees_2.11" % "2.4.6",
@@ -68,9 +68,8 @@ dependencyOverrides in ThisBuild ++= Set(
   "org.scala-stm" % "scala-stm_2.11" % "0.7",
   "org.scalacheck" % "scalacheck_2.11" % "1.12.5",
   "org.scalactic" % "scalactic_2.11" % "2.3.0-SNAP2",
-  "org.scalactic" % "scalactic_2.11" % "2.3.0-SNAP2",
   "org.scalatest" % "scalatest_2.11" % "2.3.0-SNAP2",
-  "org.scorexfoundation" % "scorex-basics_2.11" % "2.0.0-M4",
+  "org.scorexfoundation" % "scorex-basics_2.11" % "2.0.0-M6",
   "org.scoverage" % "scalac-scoverage-plugin_2.11" % "1.1.1",
   "org.scoverage" % "scalac-scoverage-runtime_2.11" % "1.1.1",
   "org.slf4j" % "slf4j-api" % "1.7.21",
@@ -84,4 +83,4 @@ dependencyOverrides in ThisBuild ++= Set(
   "org.whispersystems" % "curve25519-java" % "0.2.4",
   "org.yaml" % "snakeyaml" % "1.12"
 )
-// LIBRARY_DEPENDENCIES_HASH bec376dbd13f3266c884865fd464db79205a931b
+// LIBRARY_DEPENDENCIES_HASH 537bf820867a3613ab240b9405855f352e952993
