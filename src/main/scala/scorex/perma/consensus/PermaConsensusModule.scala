@@ -2,7 +2,7 @@ package scorex.perma.consensus
 
 import scorex.block.{Block, TransactionalData}
 import scorex.consensus.{ConsensusModule, ConsensusSettings, StoredBlockchain}
-import scorex.crypto.hash.FastCryptographicHash.Digest
+import scorex.crypto.hash.FastCryptographicHash._
 import scorex.crypto.hash.{Blake2b256, CryptographicHash, FastCryptographicHash}
 import scorex.perma.settings.PermaConstants
 import scorex.perma.settings.PermaConstants._
@@ -37,8 +37,7 @@ class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX], TDa
   val initialTargetPow: BigInt = log2(InitialTarget)
   val TargetRecalculation = PermaConstants.targetRecalculation
   val AvgDelay = PermaConstants.averageDelay
-  val Hash = FastCryptographicHash
-  implicit val hashFunction: CryptographicHash = Blake2b256 //TODO replace to FastCryptographicHash when scrypto will use Sized[]
+  implicit val Hash = FastCryptographicHash
 
   val SSize = 32
   val GenesisCreator = PublicKey25519Proposition(Sized.wrap(Array.fill(32)(0: Byte)))
@@ -64,7 +63,7 @@ class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX], TDa
   override val genesisData: PermaConsensusBlockData = {
     val t = Ticket(GenesisCreator.publicKey, Array.fill(SSize)(0: Byte), IndexedSeq())
     PermaConsensusBlockData(Array.fill(BlockIdLength)(0: Byte), Array.fill(BlockIdLength)(0: Byte),
-      InitialTarget, Hash(Array(0: Byte)), t, GenesisCreator)
+      InitialTarget, Hash.hashSized(Array(0: Byte)), t, GenesisCreator)
   }
 
   override val MaxRollback: Int = settings.MaxRollback
@@ -92,7 +91,7 @@ class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX], TDa
   /**
    * Puzzle to a new generate block on top of $block
    */
-  def generatePuz(block: PermaBlock): Digest = Hash(block.consensusData.puz.unsized ++ block.consensusData.ticket.s)
+  def generatePuz(block: PermaBlock): SizedDigest = Hash.hashSized(block.consensusData.puz.unsized ++ block.consensusData.ticket.s)
 
   def feesDistribution(block: PermaBlock): Map[PubKey, Long] =
     Map(blockGenerator(block) -> (miningReward(block) + transactionalModule.totalFee(block.transactionalData)))
@@ -121,6 +120,7 @@ class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX], TDa
           None
         }
       case Failure(t) =>
+        //TODO sync segments
         ???
     }
   }

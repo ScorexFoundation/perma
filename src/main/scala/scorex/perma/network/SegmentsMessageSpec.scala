@@ -1,6 +1,8 @@
 package scorex.perma.network
 
 import com.google.common.primitives.{Bytes, Ints, Longs}
+import scorex.crypto.authds.merkle.MerkleAuthData
+import scorex.crypto.hash.FastCryptographicHash
 import scorex.network.message.Message.MessageCode
 import scorex.network.message.MessageSpec
 import scorex.perma.consensus.PermaAuthData
@@ -9,43 +11,40 @@ import scorex.perma.settings.PermaConstants.{DataSegment, DataSegmentIndex}
 import scala.util.Try
 
 
-object SegmentsMessageSpec extends MessageSpec[Map[DataSegmentIndex,PermaAuthData]] {
+object SegmentsMessageSpec extends MessageSpec[Map[DataSegmentIndex, PermaAuthData]] {
   override val messageCode: MessageCode = 51: Byte
 
   override def serializeData(data: Map[DataSegmentIndex, PermaAuthData]): Array[Byte] = {
-    /*
-        val lengthBytes = Bytes.ensureCapacity(Ints.toByteArray(data.size), 4, 0)
-        if (data.nonEmpty) {
-          val authDataBlockSize = AuthDataBlock.encode(data.head._2).length
-          val authDataBlockSizeBytes = Bytes.ensureCapacity(Ints.toByteArray(authDataBlockSize), 4, 0)
+    val lengthBytes = Bytes.ensureCapacity(Ints.toByteArray(data.size), 4, 0)
+    if (data.nonEmpty) {
+      val authDataBlockSize = data.head._2.bytes.length
+      val authDataBlockSizeBytes = Bytes.ensureCapacity(Ints.toByteArray(authDataBlockSize), 4, 0)
 
-          data.foldLeft(lengthBytes ++ authDataBlockSizeBytes) { case (bs, dataSegment) =>
-            bs ++ Bytes.ensureCapacity(Longs.toByteArray(dataSegment._1), 8, 0) ++
-              Bytes.ensureCapacity(AuthDataBlock.encode(dataSegment._2), authDataBlockSize, 0)
-          }
+      data.foldLeft(lengthBytes ++ authDataBlockSizeBytes) { case (bs, dataSegment) =>
+        bs ++ Bytes.ensureCapacity(Longs.toByteArray(dataSegment._1), 8, 0) ++
+          Bytes.ensureCapacity(dataSegment._2.bytes, authDataBlockSize, 0)
+      }
     } else {
       lengthBytes
     }
-    */
-    ???
   }
 
   override def deserializeData(bytes: Array[Byte]): Try[Map[DataSegmentIndex, PermaAuthData]] = Try {
-/*
     val length = Ints.fromByteArray(bytes.slice(0, 4))
     if (length > 0) {
       val authDataBlockSize = Ints.fromByteArray(bytes.slice(4, 8))
       require(bytes.length == 8 + length * (8 + authDataBlockSize))
-      (0 until length).map { i =>
+      val r: Map[DataSegmentIndex, PermaAuthData] = (0 until length).map { i =>
         val position = 8 + i * (8 + authDataBlockSize)
         val index = Longs.fromByteArray(bytes.slice(position, position + 8))
-        index -> AuthDataBlock.decode(bytes.slice(position + 8, position + 8 + authDataBlockSize)).get
+        val decoded: MerkleAuthData[FastCryptographicHash.type] =
+          MerkleAuthData.decode(bytes.slice(position + 8, position + 8 + authDataBlockSize)).get
+        index -> new PermaAuthData(decoded.data, decoded.proof)
       }.toMap
+      r
     } else {
       Map.empty
     }
-*/
-    ???
   }
 
   override val messageName: String = "SegmentsMessage"

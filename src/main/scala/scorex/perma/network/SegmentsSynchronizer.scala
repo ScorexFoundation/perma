@@ -45,8 +45,7 @@ class SegmentsSynchronizer(application: Application, rootHash: Array[Byte], stor
       if msgId == SegmentsMessageSpec.messageCode =>
       log.info(s"SegmentsMessage with ${segments.size} segments")
 
-      val hf = Blake2b256 //TODO replace with FastCryptographicHash
-      if (segments.forall(s => s._2.check(rootHash)(hf))) {
+      if (segments.forall(s => s._2.check(rootHash)(FastCryptographicHash))) {
         segments.foreach(s => storage.set(s._1, s._2))
         if (segments.nonEmpty) storage.commit()
       } else {

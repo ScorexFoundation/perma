@@ -56,7 +56,7 @@ dependencyOverrides in ThisBuild ++= Set(
   "org.apache.commons" % "commons-lang3" % "3.2.1",
   "org.bitlet" % "weupnp" % "0.1.4",
   "org.codehaus.woodstox" % "stax2-api" % "3.1.4",
-  "org.consensusresearch" % "scrypto_2.11" % "1.2.0-RC1",
+  "org.consensusresearch" % "scrypto_2.11" % "1.2.0-RC2",
   "org.javassist" % "javassist" % "3.18.2-GA",
   "org.joda" % "joda-convert" % "1.7",
   "org.reactivestreams" % "reactive-streams" % "1.0.0",

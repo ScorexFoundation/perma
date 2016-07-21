@@ -5,12 +5,12 @@ import io.circe._
 import io.circe.syntax._
 import scorex.crypto.authds.merkle.{MerkleAuthData, MerklePath}
 import scorex.crypto.encode.Base58
-import scorex.crypto.hash.CryptographicHash
+import scorex.crypto.hash.{FastCryptographicHash, CryptographicHash}
 
 import scala.util.Try
 
-class PermaAuthData(data: Array[Byte], proof: MerklePath[CryptographicHash])
-  extends MerkleAuthData[CryptographicHash](data, proof) {
+class PermaAuthData(data: Array[Byte], proof: MerklePath[FastCryptographicHash.type])
+  extends MerkleAuthData[FastCryptographicHash.type](data, proof) {
   lazy val json: Json = Map(
     "data" -> Base58.encode(data).asJson,
     "proof" -> Map(
@@ -18,6 +18,7 @@ class PermaAuthData(data: Array[Byte], proof: MerklePath[CryptographicHash])
       "hashes" -> proof.hashes.map(Base58.encode).asJson
     ).asJson
   ).asJson
+
 }
 
 object PermaAuthData {

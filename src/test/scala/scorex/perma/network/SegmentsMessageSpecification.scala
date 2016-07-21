@@ -4,35 +4,38 @@ import java.io.{File, FileOutputStream}
 
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
-import scorex.crypto.hash.FastCryptographicHash
+import scorex.crypto.authds.merkle.MerkleTree
+import scorex.crypto.authds.merkle.versioned.MvStoreVersionedMerklizedIndexedSeq
+import scorex.crypto.hash.{Blake2b256, Sha256, FastCryptographicHash}
+import scorex.perma.consensus.PermaAuthData
 import scorex.perma.settings.PermaConstants
 
 import scala.util.Random
 
 class SegmentsMessageSpecification extends PropSpec with PropertyChecks with GeneratorDrivenPropertyChecks with Matchers {
-/*
+
   val segmentsMessageSp = SegmentsMessageSpec
   val getSegmentsMessageSpec = GetSegmentsMessageSpec
   val (treeDirName: String, _, tempFile: String) = generateFile(PermaConstants.n.toInt)
-  val tree = MerkleTree.fromFile(tempFile, treeDirName, PermaConstants.segmentSize)
+  val tree = MvStoreVersionedMerklizedIndexedSeq.fromFile(tempFile, Some(treeDirName), PermaConstants.segmentSize, FastCryptographicHash)
 
   property("SegmentsMessageSpec: Encode to bytes round-trip") {
     forAll { (in: Seq[Long]) =>
       val indexes = in.map(Math.abs).map(_ % PermaConstants.n)
       whenever(indexes.forall(i => i < PermaConstants.n)) {
-        val data = indexes.map(i => i -> tree.byIndex(i).get).toMap
+        val data = indexes.map(i => i -> tree.elementAndProof(i).get).map(e => e._1 -> new PermaAuthData(e._2.data, e._2.proof)).toMap
         val serialized = segmentsMessageSp.serializeData(data)
-        data.forall(s => s._2.check(s._1, tree.rootHash)(FastCryptographicHash)) shouldBe true
+        data.forall(s => s._2.check(tree.rootHash)(FastCryptographicHash)) shouldBe true
         val deserealized = segmentsMessageSp.deserializeData(serialized).get
         deserealized.keySet shouldBe indexes.toSet
         indexes.foreach { i =>
           data(i).data shouldBe deserealized(i).data
-          data(i).merklePath.size shouldBe deserealized(i).merklePath.size
-          data(i).merklePath(0) shouldBe deserealized(i).merklePath(0)
-          data(i).merklePath(1) shouldBe deserealized(i).merklePath(1)
-          data(i).merklePath(2) shouldBe deserealized(i).merklePath(2)
+          data(i).proof.hashes.size shouldBe deserealized(i).proof.hashes.size
+          data(i).proof.hashes(0) shouldBe deserealized(i).proof.hashes(0)
+          data(i).proof.hashes(1) shouldBe deserealized(i).proof.hashes(1)
+          data(i).proof.hashes(2) shouldBe deserealized(i).proof.hashes(2)
         }
-        deserealized.forall(s => s._2.check(s._1, tree.rootHash)(FastCryptographicHash)) shouldBe true
+        deserealized.forall(s => s._2.check(tree.rootHash)(FastCryptographicHash)) shouldBe true
       }
     }
   }
@@ -59,5 +62,5 @@ class SegmentsMessageSpecification extends PropSpec with PropertyChecks with Gen
     fos.write(data)
     fos.close()
     (treeDirName, treeDir, tempFile)
-  }*/
+  }
 }
