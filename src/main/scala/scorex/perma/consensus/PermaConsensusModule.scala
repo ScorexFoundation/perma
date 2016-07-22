@@ -91,7 +91,8 @@ class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX], TDa
   /**
    * Puzzle to a new generate block on top of $block
    */
-  def generatePuz(block: PermaBlock): SizedDigest = Hash.hashSized(block.consensusData.puz.unsized ++ block.consensusData.ticket.s)
+  def generatePuz(block: PermaBlock): SizedDigest =
+    Hash.hashSized(block.consensusData.puz.unsized ++ block.consensusData.ticket.s)
 
   def feesDistribution(block: PermaBlock): Map[PubKey, Long] =
     Map(blockGenerator(block) -> (miningReward(block) + transactionalModule.totalFee(block.transactionalData)))
@@ -114,8 +115,8 @@ class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX], TDa
         if (validate(pubKey, puz, target, ticket, rootHash)) {
           val timestamp = NTP.correctedTime()
           val tData = transactionalModule.packUnconfirmed()
-          val parentId = parent.consensusData.blockId
-          Some(PermaBlockBuilder.buildAndSign[TX,TData](tData, Version, timestamp, parentId, target, puz, ticket, privKey))
+          val pId = parent.consensusData.blockId
+          Some(PermaBlockBuilder.buildAndSign[TX,TData](tData, Version, timestamp, pId, target, puz, ticket, privKey))
         } else {
           None
         }
@@ -145,7 +146,8 @@ class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX], TDa
         val segment = authDataStorage.get(ri).get
         val hi = Hash(puz ++ publicKey ++ sig_prev.signature ++ segment.data)
         val sig = acc.sign(hi)
-        val rNext = calculateIndex(publicKey, BigInt(1, Hash(puz ++ publicKey ++ sig.signature)).mod(PermaConstants.l).toInt)
+        val i = BigInt(1, Hash(puz ++ publicKey ++ sig.signature)).mod(PermaConstants.l).toInt
+        val rNext = calculateIndex(publicKey, i)
 
         (rNext, sig, seq :+ PartialProof(sig, ri, segment))
     }._3.toIndexedSeq.ensuring(_.size == PermaConstants.k)
