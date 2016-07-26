@@ -198,6 +198,8 @@ class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX], TDa
   private def calcTarget(block: PermaBlock): BigInt = InitialTarget
 
   private def log2(i: BigInt): BigInt = BigDecimal(math.log(i.doubleValue()) / math.log(2)).toBigInt()
+
+  override def parseBytes(bytes: Array[Byte]): Try[PermaConsensusBlockData] = ???
 }
 
 class NotEnoughSegments(ids: Seq[DataSegmentIndex]) extends Error

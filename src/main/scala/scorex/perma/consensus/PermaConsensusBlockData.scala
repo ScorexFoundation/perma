@@ -1,12 +1,12 @@
 package scorex.perma.consensus
 
-import io.circe.{Decoder, Json}
+import io.circe.Json
+import io.circe.syntax._
 import scorex.block.ConsensusData
 import scorex.crypto.encode.Base58
 import scorex.settings.SizedConstants._
 import scorex.transaction.box.proposition.PublicKey25519Proposition
 import shapeless.Sized
-import io.circe.syntax._
 
 case class PermaConsensusBlockData(parentId: Array[Byte],
                                    signature: Array[Byte],
@@ -28,10 +28,4 @@ case class PermaConsensusBlockData(parentId: Array[Byte],
   ).asJson
 
   override val bytes: Array[Byte] = Array()
-}
-
-object PermaConsensusBlockData {
-
-  Decoder
-
 }

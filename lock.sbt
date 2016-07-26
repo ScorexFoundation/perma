@@ -70,6 +70,7 @@ dependencyOverrides in ThisBuild ++= Set(
   "org.scalactic" % "scalactic_2.11" % "2.3.0-SNAP2",
   "org.scalatest" % "scalatest_2.11" % "2.3.0-SNAP2",
   "org.scorexfoundation" % "scorex-basics_2.11" % "2.0.0-SNAPSHOT",
+  "org.scorexfoundation" % "scorex-transaction_2.11" % "2.0.0-SNAPSHOT",
   "org.scoverage" % "scalac-scoverage-plugin_2.11" % "1.1.1",
   "org.scoverage" % "scalac-scoverage-runtime_2.11" % "1.1.1",
   "org.slf4j" % "slf4j-api" % "1.7.21",
@@ -83,4 +84,4 @@ dependencyOverrides in ThisBuild ++= Set(
   "org.whispersystems" % "curve25519-java" % "0.2.4",
   "org.yaml" % "snakeyaml" % "1.12"
 )
-// LIBRARY_DEPENDENCIES_HASH bcbeae51a35bde45326872c2233ab72bd36d4f76
+// LIBRARY_DEPENDENCIES_HASH 0c09c4c2fd05bf9ccfa3da2fa4e51c33be316781
