@@ -5,12 +5,12 @@ import java.io.{File, RandomAccessFile}
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
 import scorex.crypto.authds.merkle.versioned.MvStoreVersionedMerklizedIndexedSeq
+import scorex.crypto.authds.storage.{KVStorage, MvStoreStorageType}
 import scorex.crypto.hash.FastCryptographicHash
 import scorex.perma.application.TestApp
 import scorex.perma.settings.{PermaConstants, PermaSettings}
 import scorex.perma.storage.AuthDataStorage
 import scorex.settings.Settings
-import scorex.storage.Storage
 import scorex.transaction.box.proposition.PublicKey25519Proposition
 import scorex.transaction.state.SecretGenerator25519
 import scorex.utils._
@@ -37,7 +37,8 @@ with Matchers with ScorexLogging {
 
   log.info("Put ALL data to local storage")
   new File(settings.treeDir).mkdirs()
-  implicit lazy val authDataStorage: Storage[Long, PermaAuthData] = new AuthDataStorage(Some(settings.authDataStorage))
+  implicit lazy val authDataStorage: KVStorage[Long, PermaAuthData, MvStoreStorageType] =
+    new AuthDataStorage(Some(settings.authDataStorage))
 
   def addBlock(i: Long): Unit = {
     val p = tree.elementAndProof(i).get

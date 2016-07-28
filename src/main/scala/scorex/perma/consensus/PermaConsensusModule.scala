@@ -2,13 +2,13 @@ package scorex.perma.consensus
 
 import scorex.block.{Block, TransactionalData}
 import scorex.consensus.{ConsensusModule, ConsensusSettings, StoredBlockchain}
+import scorex.crypto.authds.storage.KVStorage
+import scorex.crypto.hash.FastCryptographicHash
 import scorex.crypto.hash.FastCryptographicHash._
-import scorex.crypto.hash.{Blake2b256, CryptographicHash, FastCryptographicHash}
 import scorex.perma.settings.PermaConstants
 import scorex.perma.settings.PermaConstants._
 import scorex.settings.Settings
 import scorex.settings.SizedConstants._
-import scorex.storage.Storage
 import scorex.transaction._
 import scorex.transaction.box.proposition.PublicKey25519Proposition
 import scorex.transaction.proof.Signature25519
@@ -27,7 +27,7 @@ import scala.util.{Failure, Success, Try}
 class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX], TData <: TransactionalData[TX]]
 (rootHash: Sized[Array[Byte], Nat32], val settings: Settings with ConsensusSettings,
  override val transactionalModule: TransactionalModule[PublicKey25519Proposition, TX, TData])
-(implicit val authDataStorage: Storage[Long, PermaAuthData])
+(implicit val authDataStorage: KVStorage[Long, PermaAuthData, _])
   extends ConsensusModule[PublicKey25519Proposition, TX, TData, PermaConsensusBlockData]
   with StoredBlockchain[PublicKey25519Proposition, PermaConsensusBlockData, TX, TData]
   with ScorexLogging {

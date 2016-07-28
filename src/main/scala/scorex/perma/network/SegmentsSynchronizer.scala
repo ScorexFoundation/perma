@@ -3,13 +3,13 @@ package scorex.perma.network
 
 import akka.actor.ActorRef
 import scorex.app.Application
-import scorex.crypto.hash.{Blake2b256, FastCryptographicHash}
+import scorex.crypto.authds.storage.KVStorage
+import scorex.crypto.hash.FastCryptographicHash
 import scorex.network.NetworkController.{DataFromPeer, SendToNetwork}
 import scorex.network.message.{Message, MessageSpec}
 import scorex.network.{SendToChosen, ViewSynchronizer}
 import scorex.perma.consensus.PermaAuthData
 import scorex.perma.settings.PermaConstants._
-import scorex.storage.Storage
 import scorex.utils.ScorexLogging
 
 import scala.util.Random
@@ -20,7 +20,7 @@ import scala.util.Random
  * Some number of random peers are asked firstly.
  *
  */
-class SegmentsSynchronizer(application: Application, rootHash: Array[Byte], storage: Storage[Long, PermaAuthData])
+class SegmentsSynchronizer(application: Application, rootHash: Array[Byte], storage: KVStorage[Long, PermaAuthData, _])
   extends ViewSynchronizer with ScorexLogging {
 
   private val MaxSegmentsInMessage = 16
