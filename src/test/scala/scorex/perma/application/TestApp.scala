@@ -1,0 +1,34 @@
+package scorex.perma.application
+
+import scorex.app.{Application, ApplicationVersion}
+import scorex.crypto.authds.storage.KVStorage
+import scorex.network.message.MessageSpec
+import scorex.perma.consensus.{PermaAuthData, PermaConsensusBlockData, PermaConsensusModule}
+import scorex.perma.settings.PermaSettings
+import scorex.settings.Settings
+import scorex.transaction.box.proposition.PublicKey25519Proposition
+import scorex.transaction.{LagonakiTransaction, SimpleTransactionModule, SimplestTransactionalData}
+import shapeless.Sized
+
+class TestApp(rootHash: Array[Byte], implicit val authDataStorage: KVStorage[Long, PermaAuthData, _]) extends {
+  override protected val additionalMessageSpecs: Seq[MessageSpec[_]] = Seq()
+  override val apiTypes = Seq()
+  override val apiRoutes = Seq()
+
+} with Application {
+  override implicit val settings = new Settings with PermaSettings {
+    override lazy val filename = "settings-test.json"
+  }
+  override implicit val transactionModule = new SimpleTransactionModule(settings, networkController)
+  val consensusModule = new PermaConsensusModule(Sized.wrap(rootHash), settings, transactionModule)
+
+  override val applicationName: String = "test"
+
+  override def appVersion: ApplicationVersion = ApplicationVersion(0, 0, 0)
+
+  override type CData = PermaConsensusBlockData
+  override type P = PublicKey25519Proposition
+  override type TX = LagonakiTransaction
+  override type TData = SimplestTransactionalData
+
+}
