@@ -1,5 +1,6 @@
 package scorex.perma.consensus
 
+import com.google.common.primitives.Ints
 import scorex.block.{Block, TransactionalData}
 import scorex.consensus.{ConsensusModule, ConsensusSettings, StoredBlockchain}
 import scorex.crypto.authds.storage.KVStorage
@@ -22,8 +23,8 @@ import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
 
 /**
- * Data and functions related to a Permacoin consensus protocol
- */
+  * Data and functions related to a Permacoin consensus protocol
+  */
 class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX], TData <: TransactionalData[TX]]
 (rootHash: Sized[Array[Byte], Nat32], val settings: Settings with ConsensusSettings,
  override val transactionalModule: TransactionalModule[PublicKey25519Proposition, TX, TData])
@@ -89,8 +90,8 @@ class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX], TDa
   }
 
   /**
-   * Puzzle to a new generate block on top of $block
-   */
+    * Puzzle to a new generate block on top of $block
+    */
   def generatePuz(block: PermaBlock): SizedDigest =
     Hash.hashSized(block.consensusData.puz.unsized ++ block.consensusData.ticket.s)
 
@@ -116,7 +117,7 @@ class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX], TDa
           val timestamp = NTP.correctedTime()
           val tData = transactionalModule.packUnconfirmed()
           val pId = parent.consensusData.blockId
-          Some(PermaBlockBuilder.buildAndSign[TX,TData](tData, Version, timestamp, pId, target, puz, ticket, privKey))
+          Some(PermaBlockBuilder.buildAndSign[TX, TData](tData, Version, timestamp, pId, target, puz, ticket, privKey))
         } else {
           None
         }
@@ -199,7 +200,16 @@ class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX], TDa
 
   private def log2(i: BigInt): BigInt = BigDecimal(math.log(i.doubleValue()) / math.log(2)).toBigInt()
 
-  override def parseBytes(bytes: Array[Byte]): Try[PermaConsensusBlockData] = ???
+  override def parseBytes(bytes: Array[Byte]): Try[PermaConsensusBlockData] = Try {
+    parseArraySizes(bytes) match {
+      case parentId :: signature :: targetBytes :: puz :: ticketBytes :: producerBytes :: Nil =>
+        val target = BigInt(targetBytes)
+        val ticket = Ticket.parseBytes(ticketBytes).get
+        val producer = PublicKey25519Proposition(Sized.wrap(producerBytes))
+        PermaConsensusBlockData(parentId, signature, target, Sized.wrap(puz), ticket, producer)
+      case _ => throw new Error("parseArraySizes failure")
+    }
+  }
 }
 
 class NotEnoughSegments(ids: Seq[DataSegmentIndex]) extends Error

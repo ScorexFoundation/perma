@@ -5,12 +5,13 @@ import io.circe._
 import io.circe.syntax._
 import scorex.crypto.authds.merkle.{MerkleAuthData, MerklePath}
 import scorex.crypto.encode.Base58
-import scorex.crypto.hash.{FastCryptographicHash, CryptographicHash}
+import scorex.crypto.hash.FastCryptographicHash
+import scorex.serialization.{BytesParseable, BytesSerializable, JsonSerializable}
 
 import scala.util.Try
 
 class PermaAuthData(data: Array[Byte], proof: MerklePath[FastCryptographicHash.type])
-  extends MerkleAuthData[FastCryptographicHash.type](data, proof) {
+  extends MerkleAuthData[FastCryptographicHash.type](data, proof) with JsonSerializable with BytesSerializable {
   lazy val json: Json = Map(
     "data" -> Base58.encode(data).asJson,
     "proof" -> Map(
@@ -21,10 +22,17 @@ class PermaAuthData(data: Array[Byte], proof: MerklePath[FastCryptographicHash.t
 
 }
 
-object PermaAuthData {
+object PermaAuthData extends BytesParseable[PermaAuthData] {
+
+
+  override def parseBytes(bytes: Array[Byte]): Try[PermaAuthData] = Try {
+    val m: MerkleAuthData[FastCryptographicHash.type] = MerkleAuthData.decode(bytes).get
+    new PermaAuthData(m.data, m.proof)
+  }
+
   /**
-   * @group Decoding
-   */
+    * @group Decoding
+    */
   implicit final val decodeJson: Decoder[PermaAuthData] = new Decoder[PermaAuthData] {
     final def apply(c: HCursor): Xor[DecodingFailure, PermaAuthData] = c.focus.asObject match {
       case Some(m: JsonObject) =>

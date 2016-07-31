@@ -27,5 +27,8 @@ case class PermaConsensusBlockData(parentId: Array[Byte],
     "producer" -> producer.address.asJson
   ).asJson
 
-  override val bytes: Array[Byte] = Array()
+  override val bytes: Array[Byte] = {
+    arrayWithSize(parentId) ++ arrayWithSize(signature) ++ arrayWithSize(target.toByteArray) ++
+      arrayWithSize(puz.unsized) ++ arrayWithSize(ticket.bytes) ++ arrayWithSize(producer.bytes)
+  }
 }

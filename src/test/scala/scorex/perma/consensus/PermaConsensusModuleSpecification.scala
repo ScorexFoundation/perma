@@ -2,16 +2,25 @@ package scorex.perma.consensus
 
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
+import scorex.Generators
 import scorex.perma.application.TestAppSupport
 import scorex.transaction.box.proposition.PublicKey25519Proposition
 import scorex.transaction.state.SecretGenerator25519
 import scorex.utils._
 
 class PermaConsensusModuleSpecification extends PropSpec with PropertyChecks with GeneratorDrivenPropertyChecks
-with Matchers with TestAppSupport {
+with Matchers with TestAppSupport with Generators {
 
 
   val consensus = application.consensusModule
+
+
+  property("PermaConsensusBlockData serialization roundtrip") {
+    forAll(blockData) { bd: PermaConsensusBlockData =>
+      val decoded = consensus.parseBytes(bd.bytes).get
+
+    }
+  }
 
   property("generate/validate roundtrip") {
     forAll { (seed: Array[Byte], puz: Array[Byte], wrongBytes: Array[Byte]) =>
@@ -28,6 +37,5 @@ with Matchers with TestAppSupport {
       }
     }
   }
-
 
 }
