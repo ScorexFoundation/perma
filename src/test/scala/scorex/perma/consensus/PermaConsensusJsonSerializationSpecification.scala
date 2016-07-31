@@ -10,7 +10,7 @@ import io.circe.syntax._
 class PermaConsensusJsonSerializationSpecification extends PropSpec with PropertyChecks with GeneratorDrivenPropertyChecks
 with Matchers with ScorexLogging with Generators {
 
-  property("PermaAuthData generate/validate roundtrip") {
+  property("PermaAuthData JSON serialization roundtrip") {
     forAll(segmentGen) { ad: PermaAuthData =>
 
       val decoded = decode[PermaAuthData](ad.json.spaces4)
@@ -24,7 +24,7 @@ with Matchers with ScorexLogging with Generators {
   }
 
 
-  property("PermaConsensusBlockData generate/validate roundtrip") {
+  ignore("PermaConsensusBlockData JSON serialization roundtrip") {
     forAll(blockData) { bd: PermaConsensusBlockData =>
       //      val decoded = decode[PermaConsensusBlockData](json.spaces4)
     }
