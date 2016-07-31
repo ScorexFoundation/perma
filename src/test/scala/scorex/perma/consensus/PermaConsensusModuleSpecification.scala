@@ -15,6 +15,19 @@ with Matchers with TestAppSupport with Generators {
   val consensus = application.consensusModule
 
 
+  property("PartialProof serialization roundtrip") {
+    forAll(proofsGen) { t: IndexedSeq[PartialProof] =>
+      val decoded = PartialProof.parseBytes(t.head.bytes).get
+      decoded.signature.signature shouldEqual t.head.signature.signature
+    }
+  }
+
+  property("Ticket serialization roundtrip") {
+    forAll(ticketGen) { t: Ticket =>
+      val decoded = Ticket.parseBytes(t.bytes).get
+    }
+  }
+
   property("PermaConsensusBlockData serialization roundtrip") {
     forAll(blockData) { bd: PermaConsensusBlockData =>
       val decoded = consensus.parseBytes(bd.bytes).get
