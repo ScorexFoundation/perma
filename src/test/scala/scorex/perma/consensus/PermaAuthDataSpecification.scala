@@ -7,7 +7,7 @@ import scorex.utils._
 import io.circe.parser._
 import io.circe.syntax._
 
-class PermaConsensusJsonSerializationSpecification extends PropSpec with PropertyChecks with GeneratorDrivenPropertyChecks
+class PermaAuthDataSpecification extends PropSpec with PropertyChecks with GeneratorDrivenPropertyChecks
 with Matchers with ScorexLogging with Generators {
 
   property("PermaAuthData JSON serialization roundtrip") {
