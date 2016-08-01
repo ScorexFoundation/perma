@@ -9,7 +9,7 @@ import scala.util.Try
 
 trait PermaSettings extends ConsensusSettings {
 
-  lazy val rootHash: Array[Byte] = Base58.decode("13uSUANWHG7PaCac7i9QKDZriUNKXCi84UkS3ijGYTm1").get
+  val rootHash: Array[Byte]
 
   lazy val isTrustedDealer =
     Try(settingsJSON.get("perma").get.asObject.get.toMap.get("isTrustedDealer").get.asBoolean.get).getOrElse(false)
