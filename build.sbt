@@ -8,6 +8,7 @@ resolvers += "Sonatype Releases" at "https://oss.sonatype.org/content/repositori
 
 libraryDependencies ++= Seq(
   "org.scorexfoundation" %% "scorex-basics" % "2.0.0-SNAPSHOT",
+  "com.typesafe.akka" %% "akka-testkit" % "2.+" % "test",
   "org.scorexfoundation" %% "scorex-transaction" % "2.0.0-SNAPSHOT"  % "test",
   "org.scalatest" %% "scalatest" % "2.+" % "test",
   "org.scalactic" %% "scalactic" % "2.+" % "test",

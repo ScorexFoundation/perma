@@ -1,5 +1,6 @@
 package scorex.perma.application
 
+import scorex.api.http.TransactionsApiRoute
 import scorex.app.{Application, ApplicationVersion}
 import scorex.crypto.authds.storage.KVStorage
 import scorex.network.message.MessageSpec
@@ -9,13 +10,17 @@ import scorex.settings.Settings
 import scorex.transaction.box.proposition.PublicKey25519Proposition
 import scorex.transaction.{LagonakiTransaction, SimpleTransactionModule, SimplestTransactionalData}
 import shapeless.Sized
+import scala.reflect.runtime.universe._
 
 class TestApp(rootHash: Array[Byte], implicit val authDataStorage: KVStorage[Long, PermaAuthData, _]) extends {
   override protected val additionalMessageSpecs: Seq[MessageSpec[_]] = Seq()
-  override val apiTypes = Seq()
-  override val apiRoutes = Seq()
 
 } with Application {
+  override type CData = PermaConsensusBlockData
+  override type P = PublicKey25519Proposition
+  override type TX = LagonakiTransaction
+  override type TData = SimplestTransactionalData
+
   override implicit val settings = new Settings with PermaSettings {
     override lazy val filename = "settings-test.json"
   }
@@ -26,9 +31,7 @@ class TestApp(rootHash: Array[Byte], implicit val authDataStorage: KVStorage[Lon
 
   override def appVersion: ApplicationVersion = ApplicationVersion(0, 0, 0)
 
-  override type CData = PermaConsensusBlockData
-  override type P = PublicKey25519Proposition
-  override type TX = LagonakiTransaction
-  override type TData = SimplestTransactionalData
+  override val apiRoutes = Seq(TransactionsApiRoute(transactionModule, settings))
+  override val apiTypes = Seq(typeOf[TransactionsApiRoute])
 
 }

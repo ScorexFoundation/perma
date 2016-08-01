@@ -1,16 +1,22 @@
 package scorex.perma.application
 
-import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
-import org.scalatest.{Matchers, PropSpec}
-import scorex.transaction.box.proposition.PublicKey25519Proposition
-import scorex.transaction.state.SecretGenerator25519
-import scorex.utils._
+import akka.actor.ActorSystem
+import akka.testkit.{ImplicitSender, TestKit}
+import org.scalatest.{Matchers, WordSpecLike}
+import scorex.network.HistorySynchronizer.GetStatus
 
-class TestAppSpecification extends PropSpec with PropertyChecks with GeneratorDrivenPropertyChecks
-with Matchers with TestAppSupport {
+class TestAppSpecification extends TestKit(ActorSystem("MySpec")) with WordSpecLike
+with Matchers with TestAppSupport with ImplicitSender {
 
-  property("checkGenesis()") {
-    application.checkGenesis()
+  "application" must {
+    "apply genesis" in {
+      application.checkGenesis()
+    }
+    "create historySynchronizer" in {
+      application.historySynchronizer ! Unit
+      application.historySynchronizer ! GetStatus
+      expectMsg("syncing")
+    }
   }
 
 

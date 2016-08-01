@@ -33,6 +33,7 @@ dependencyOverrides in ThisBuild ++= Set(
   "com.typesafe.akka" % "akka-http-spray-json-experimental_2.11" % "2.4.8",
   "com.typesafe.akka" % "akka-parsing_2.11" % "2.4.8",
   "com.typesafe.akka" % "akka-stream_2.11" % "2.4.8",
+  "com.typesafe.akka" % "akka-testkit_2.11" % "2.4.8",
   "com.typesafe.play" % "play-datacommons_2.11" % "2.4.8",
   "com.typesafe.play" % "play-functional_2.11" % "2.4.8",
   "com.typesafe.play" % "play-iteratees_2.11" % "2.4.8",
@@ -84,4 +85,4 @@ dependencyOverrides in ThisBuild ++= Set(
   "org.whispersystems" % "curve25519-java" % "0.2.4",
   "org.yaml" % "snakeyaml" % "1.12"
 )
-// LIBRARY_DEPENDENCIES_HASH 0c09c4c2fd05bf9ccfa3da2fa4e51c33be316781
+// LIBRARY_DEPENDENCIES_HASH 1282d4d1b0817bbd12dd2b3f7f26fbefd57135a7
