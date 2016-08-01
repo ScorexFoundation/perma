@@ -12,6 +12,10 @@ with Matchers with TestAppSupport with ImplicitSender {
     "apply genesis" in {
       application.checkGenesis()
     }
+    "get last block" in {
+      application.consensusModule.height() should be >= 1
+      application.consensusModule.lastBlock
+    }
     "create historySynchronizer" in {
       application.historySynchronizer ! Unit
       application.historySynchronizer ! GetStatus

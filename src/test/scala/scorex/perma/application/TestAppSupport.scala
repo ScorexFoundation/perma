@@ -4,6 +4,7 @@ import java.io.{RandomAccessFile, File}
 
 import scorex.crypto.authds.merkle.versioned.MvStoreVersionedMerklizedIndexedSeq
 import scorex.crypto.authds.storage.{MvStoreStorageType, KVStorage}
+import scorex.crypto.encode.Base58
 import scorex.crypto.hash.FastCryptographicHash
 import scorex.perma.consensus.PermaAuthData
 import scorex.perma.settings.{PermaConstants, PermaSettings}
@@ -13,6 +14,7 @@ import scorex.utils.ScorexLogging
 
 trait TestAppSupport extends ScorexLogging {
   implicit val settings = new Settings with PermaSettings {
+    lazy val rootHash: Array[Byte] = Base58.decode("13uSUANWHG7PaCac7i9QKDZriUNKXCi84UkS3ijGYTm1").get
     override lazy val filename = "settings-test.json"
   }
 

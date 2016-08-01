@@ -3,6 +3,7 @@ package scorex.perma.application
 import scorex.api.http.TransactionsApiRoute
 import scorex.app.{Application, ApplicationVersion}
 import scorex.crypto.authds.storage.KVStorage
+import scorex.crypto.encode.Base58
 import scorex.network.message.MessageSpec
 import scorex.perma.consensus.{PermaAuthData, PermaConsensusBlockData, PermaConsensusModule}
 import scorex.perma.settings.PermaSettings
@@ -23,6 +24,7 @@ class TestApp(rootHash: Array[Byte], implicit val authDataStorage: KVStorage[Lon
 
   override implicit val settings = new Settings with PermaSettings {
     override lazy val filename = "settings-test.json"
+    lazy val rootHash: Array[Byte] = Base58.decode("13uSUANWHG7PaCac7i9QKDZriUNKXCi84UkS3ijGYTm1").get
   }
   override implicit val transactionModule = new SimpleTransactionModule(settings, networkController)
   val consensusModule = new PermaConsensusModule(Sized.wrap(rootHash), settings, transactionModule)
