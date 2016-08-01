@@ -11,11 +11,12 @@ class AuthDataStorage(fileOpt: Option[String]) extends KVStorage[DataSegmentInde
     case Some(file) => new MVStore.Builder().fileName(file).compress().open()
     case None => new MVStore.Builder().open()
   }
-  val segments: MVMap[DataSegmentIndex, PermaAuthData] = db.openMap("segments")
+  val segments: MVMap[DataSegmentIndex, Array[Byte]] = db.openMap("segments")
 
-  override def set(key: DataSegmentIndex, value: PermaAuthData): Unit = segments.put(key, value)
+  override def set(key: DataSegmentIndex, value: PermaAuthData): Unit = segments.put(key, value.bytes)
 
   override def get(key: DataSegmentIndex): Option[PermaAuthData] = Option(segments.get(key))
+    .flatMap(b => PermaAuthData.parseBytes(b).toOption)
 
   override def size: DataSegmentIndex = segments.sizeAsLong()
 
