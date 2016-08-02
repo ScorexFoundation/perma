@@ -14,7 +14,7 @@ with Matchers with TestAppSupport with ImplicitSender {
   "application" must {
     "serialize/parse genesis" in {
       val genesis = Block.genesis[app.P, app.TX, app.TData, app.CData](settings.genesisTimestamp)
-      val parsed = Block.parse[app.P, app.TX, app.TData, app.CData](genesis.bytes)(consensusModule, transactionalModule)
+      val parsed = Block.parseBytes[app.P, app.TX, app.TData, app.CData](genesis.bytes)(consensusModule, transactionalModule)
       parsed match {
         case Failure(e) => throw e
         case _ =>

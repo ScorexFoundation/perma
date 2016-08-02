@@ -49,5 +49,5 @@ trait TestAppSupport extends ScorexLogging {
   val rootHash = tree.rootHash
   val app = new TestApp(rootHash, authDataStorage)
   implicit val consensusModule = app.consensusModule
-  implicit val transactionalModule = app.transactionModule
+  implicit val transactionalModule = app.transactionalModule
 }

@@ -26,14 +26,14 @@ class TestApp(rootHash: Array[Byte], implicit val authDataStorage: KVStorage[Lon
     override lazy val filename = "settings-test.json"
     lazy val rootHash: Array[Byte] = Base58.decode("13uSUANWHG7PaCac7i9QKDZriUNKXCi84UkS3ijGYTm1").get
   }
-  override implicit val transactionModule = new SimpleTransactionModule(settings, networkController)
-  val consensusModule = new PermaConsensusModule(Sized.wrap(rootHash), settings, transactionModule)
+  override implicit val transactionalModule = new SimpleTransactionModule(settings, networkController)
+  val consensusModule = new PermaConsensusModule(Sized.wrap(rootHash), settings, transactionalModule)
 
   override val applicationName: String = "test"
 
   override def appVersion: ApplicationVersion = ApplicationVersion(0, 0, 0)
 
-  override val apiRoutes = Seq(TransactionsApiRoute(transactionModule, settings))
+  override val apiRoutes = Seq(TransactionsApiRoute(transactionalModule, settings))
   override val apiTypes = Seq(typeOf[TransactionsApiRoute])
 
 }
