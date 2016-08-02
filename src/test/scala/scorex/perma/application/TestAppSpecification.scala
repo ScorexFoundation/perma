@@ -6,7 +6,9 @@ import org.scalatest.{Matchers, WordSpecLike}
 import scorex.block.Block
 import scorex.network.HistorySynchronizer.GetStatus
 
+import scala.concurrent.Await
 import scala.util.Failure
+import scala.concurrent.duration._
 
 class TestAppSpecification extends TestKit(ActorSystem("MySpec")) with WordSpecLike
 with Matchers with TestAppSupport with ImplicitSender {
@@ -33,6 +35,13 @@ with Matchers with TestAppSupport with ImplicitSender {
       app.historySynchronizer ! Unit
       app.historySynchronizer ! GetStatus
       expectMsg("syncing")
+    }
+    "generate next block" in {
+      app.checkGenesis()
+      Await.result(consensusModule.generateNextBlock(app.wallet), 5.second) match {
+        case None => throw new Error("block was not generated")
+        case Some(b) =>
+      }
     }
   }
 

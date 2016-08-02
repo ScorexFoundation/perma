@@ -23,8 +23,8 @@ import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
 
 /**
-  * Data and functions related to a Permacoin consensus protocol
-  */
+ * Data and functions related to a Permacoin consensus protocol
+ */
 class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX], TData <: TransactionalData[TX]]
 (rootHash: Sized[Array[Byte], Nat32], val settings: Settings with ConsensusSettings,
  override val transactionalModule: TransactionalModule[PublicKey25519Proposition, TX, TData])
@@ -90,8 +90,8 @@ class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX], TDa
   }
 
   /**
-    * Puzzle to a new generate block on top of $block
-    */
+   * Puzzle to a new generate block on top of $block
+   */
   def generatePuz(block: PermaBlock): SizedDigest =
     Hash.hashSized(block.consensusData.puz.unsized ++ block.consensusData.ticket.s)
 
@@ -107,7 +107,8 @@ class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX], TDa
     val parent = lastBlock
     val puz = generatePuz(parent)
 
-    val privKey: PrivateKey25519Holder = ???
+    //TODO asInstanceOf
+    val privKey: PrivateKey25519Holder = wallet.privateKeyAccount().asInstanceOf[PrivateKey25519Holder]
     val pubKey = privKey.publicCommitment
     val ticketTry = generate(privKey, puz)
     ticketTry match {
@@ -115,13 +116,16 @@ class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX], TDa
         val target = calcTarget(parent)
         if (validate(pubKey, puz, target, ticket, rootHash)) {
           val timestamp = NTP.correctedTime()
-          val tData = transactionalModule.packUnconfirmed()
+          lazy val tData = transactionalModule.packUnconfirmed()
           val pId = parent.consensusData.blockId
+          log.info("Build new block")
           Some(PermaBlockBuilder.buildAndSign[TX, TData](tData, Version, timestamp, pId, target, puz, ticket, privKey))
         } else {
+          log.info("Non-valid ticket")
           None
         }
       case Failure(t) =>
+        log.warn("Failed to generate block", t)
         //TODO sync segments
         ???
     }
