@@ -12,7 +12,7 @@ class PermaConsensusModuleSpecification extends PropSpec with PropertyChecks wit
 with Matchers with TestAppSupport with Generators {
 
 
-  val consensus = application.consensusModule
+  val consensus = app.consensusModule
 
 
   property("PartialProof serialization roundtrip") {

@@ -47,5 +47,7 @@ trait TestAppSupport extends ScorexLogging {
   addBlock(PermaConstants.n - 1)
 
   val rootHash = tree.rootHash
-  val application = new TestApp(rootHash, authDataStorage)
+  val app = new TestApp(rootHash, authDataStorage)
+  implicit val consensusModule = app.consensusModule
+  implicit val transactionalModule = app.transactionModule
 }
