@@ -36,9 +36,10 @@ trait Generators {
     proofs: IndexedSeq[PartialProof] <- proofsGen
   } yield Ticket(publicKey, s, proofs)
 
-  val gen = PublicKey25519Proposition(Sized.wrap(Array.fill(32)(0: Byte)))
+  val PropositionGen = sizedBytes.map(b => PublicKey25519Proposition(b))
 
   val blockData = for {
+    gen: PublicKey25519Proposition <- PropositionGen
     parentId: Array[Byte] <- bytes
     signature: Array[Byte] <- bytes
     target: BigInt <- Arbitrary.arbitrary[BigInt]

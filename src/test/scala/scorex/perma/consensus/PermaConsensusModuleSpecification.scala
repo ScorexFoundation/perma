@@ -36,6 +36,7 @@ with Matchers with TestAppSupport with Generators {
   }
 
   property("generate/validate roundtrip") {
+    val rootHash = TestAppSupport.rootHash
     forAll { (seed: Array[Byte], puz: Array[Byte], wrongBytes: Array[Byte]) =>
       whenever(seed.nonEmpty && puz.nonEmpty && wrongBytes.nonEmpty && !wrongBytes.sameElements(puz)) {
         val keyPair = SecretGenerator25519.generateKeys(seed)

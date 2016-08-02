@@ -1,9 +1,9 @@
 package scorex.perma.application
 
-import java.io.{RandomAccessFile, File}
+import java.io.{File, RandomAccessFile}
 
 import scorex.crypto.authds.merkle.versioned.MvStoreVersionedMerklizedIndexedSeq
-import scorex.crypto.authds.storage.{MvStoreStorageType, KVStorage}
+import scorex.crypto.authds.storage.{KVStorage, MvStoreStorageType}
 import scorex.crypto.encode.Base58
 import scorex.crypto.hash.FastCryptographicHash
 import scorex.perma.consensus.PermaAuthData
@@ -12,7 +12,14 @@ import scorex.perma.storage.AuthDataStorage
 import scorex.settings.Settings
 import scorex.utils.ScorexLogging
 
-trait TestAppSupport extends ScorexLogging {
+trait TestAppSupport {
+  implicit val settings = TestAppSupport.settings
+  val app = TestAppSupport.app
+  implicit val consensusModule = app.consensusModule
+  implicit val transactionalModule = app.transactionalModule
+}
+
+object TestAppSupport extends ScorexLogging {
   implicit val settings = new Settings with PermaSettings {
     lazy val rootHash: Array[Byte] = Base58.decode("13uSUANWHG7PaCac7i9QKDZriUNKXCi84UkS3ijGYTm1").get
     override lazy val filename = "settings-test.json"
@@ -48,6 +55,5 @@ trait TestAppSupport extends ScorexLogging {
 
   val rootHash = tree.rootHash
   val app = new TestApp(rootHash, authDataStorage)
-  implicit val consensusModule = app.consensusModule
-  implicit val transactionalModule = app.transactionalModule
+
 }

@@ -5,11 +5,13 @@ import java.io.File
 import org.scalacheck.Arbitrary
 import org.scalatest.prop.{GeneratorDrivenPropertyChecks, PropertyChecks}
 import org.scalatest.{Matchers, PropSpec}
+import scorex.Generators
 import scorex.crypto.authds.merkle.MerklePath
 import scorex.perma.consensus.PermaAuthData
 
 
-class AuthDataStorageSpecification extends PropSpec with PropertyChecks with GeneratorDrivenPropertyChecks with Matchers {
+class AuthDataStorageSpecification extends PropSpec with PropertyChecks with GeneratorDrivenPropertyChecks with Matchers
+with Generators {
 
   val treeDirName = "/tmp/scorex-test/test/AuthDataStorageSpecification/"
   val treeDir = new File(treeDirName)
@@ -17,8 +19,9 @@ class AuthDataStorageSpecification extends PropSpec with PropertyChecks with Gen
 
   val keyVal = for {
     key: Long <- Arbitrary.arbitrary[Long]
+    b <- sizedBytes
     value <- Arbitrary.arbitrary[String]
-  } yield (key, new PermaAuthData(value.getBytes, MerklePath(0, Seq())))
+  } yield (key, new PermaAuthData(value.getBytes, MerklePath(0, Seq(b.unsized))))
 
 
   property("set value and get it") {
