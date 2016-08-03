@@ -23,6 +23,7 @@ import scorex.transaction.wallet.Wallet
 import scorex.utils.{NTP, Random, ScorexLogging}
 import shapeless.Sized
 
+import scala.collection.concurrent.TrieMap
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
@@ -211,8 +212,23 @@ class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX], TDa
   private[consensus] def calculateIndex(pubKey: Array[Byte], i: Int): Long =
     BigInt(1, Hash(pubKey ++ BigInt(i).toByteArray)).mod(PermaConstants.n).toLong
 
-  //TODO make configurable
-  private def calcTarget(block: PermaBlock): BigInt = InitialTarget
+  private val targetBuf = TrieMap[String, BigInt]()
+
+  private def calcTarget(block: PermaBlock): BigInt = {
+    val currentTarget = block.consensusData.target
+    val height = heightOf(block).get
+    if (height % TargetRecalculation == 0 && height > TargetRecalculation) {
+      def calc = {
+        val lastAvgDuration: BigInt = averageDelay(block, TargetRecalculation).get
+        val newTarget = currentTarget * lastAvgDuration / 1000 / AvgDelay
+        log.debug(s"Height: $height, target:$newTarget vs $currentTarget, lastAvgDuration:$lastAvgDuration")
+        newTarget
+      }
+      targetBuf.getOrElseUpdate(encodedId(block), calc)
+    } else {
+      currentTarget
+    }
+  }
 
   private def log2(i: BigInt): BigInt = BigDecimal(math.log(i.doubleValue()) / math.log(2)).toBigInt()
 
