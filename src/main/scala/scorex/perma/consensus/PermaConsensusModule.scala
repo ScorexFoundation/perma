@@ -1,11 +1,16 @@
 package scorex.perma.consensus
 
+import akka.actor.ActorRef
 import com.google.common.primitives.Ints
 import scorex.block.{Block, TransactionalData}
 import scorex.consensus.{ConsensusModule, ConsensusSettings, StoredBlockchain}
 import scorex.crypto.authds.storage.KVStorage
 import scorex.crypto.hash.FastCryptographicHash
 import scorex.crypto.hash.FastCryptographicHash._
+import scorex.network.NetworkController.SendToNetwork
+import scorex.network.SendToRandom
+import scorex.network.message.Message
+import scorex.perma.network.GetSegmentsMessageSpec
 import scorex.perma.settings.PermaConstants
 import scorex.perma.settings.PermaConstants._
 import scorex.settings.Settings
@@ -26,8 +31,10 @@ import scala.util.{Failure, Success, Try}
  * Data and functions related to a Permacoin consensus protocol
  */
 class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX], TData <: TransactionalData[TX]]
-(rootHash: Sized[Array[Byte], Nat32], val settings: Settings with ConsensusSettings,
- override val transactionalModule: TransactionalModule[PublicKey25519Proposition, TX, TData])
+(rootHash: Sized[Array[Byte], Nat32],
+ val settings: Settings with ConsensusSettings,
+ override val transactionalModule: TransactionalModule[PublicKey25519Proposition, TX, TData],
+ networkController: ActorRef)
 (implicit val authDataStorage: KVStorage[Long, PermaAuthData, _])
   extends ConsensusModule[PublicKey25519Proposition, TX, TData, PermaConsensusBlockData]
   with StoredBlockchain[PublicKey25519Proposition, PermaConsensusBlockData, TX, TData]
@@ -90,7 +97,7 @@ class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX], TDa
   }
 
   /**
-   * Puzzle to a new generate block on top of $block
+   * Puzzle to a new generate block on top of block
    */
   def generatePuz(block: PermaBlock): SizedDigest =
     Hash.hashSized(block.consensusData.puz.unsized ++ block.consensusData.ticket.s)
@@ -125,9 +132,14 @@ class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX], TDa
           None
         }
       case Failure(t) =>
-        log.warn("Failed to generate block", t)
-        //TODO sync segments
-        ???
+        val segmentIds = 1.to(PermaConstants.l).map(i => calculateIndex(pubKey.publicKey.unsized, i - 1))
+          .filterNot(authDataStorage.containsKey)
+        if (segmentIds.nonEmpty) {
+          val msg = Message(GetSegmentsMessageSpec, Right(segmentIds), None)
+          networkController ! SendToNetwork(msg, SendToRandom)
+          log.warn(s"Failed to generate new ticket, ${segmentIds.length} segments required")
+          throw new NotEnoughSegments(segmentIds)
+        } else throw t
     }
   }
 
