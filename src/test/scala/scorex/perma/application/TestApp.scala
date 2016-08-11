@@ -17,10 +17,10 @@ class TestApp(rootHash: Array[Byte], implicit val authDataStorage: KVStorage[Lon
   override protected val additionalMessageSpecs: Seq[MessageSpec[_]] = Seq()
 
 } with Application {
-  override type CData = PermaConsensusBlockData
+  override type CD = PermaConsensusBlockData
   override type P = PublicKey25519Proposition
   override type TX = LagonakiTransaction
-  override type TData = SimplestTransactionalData
+  override type TD = SimplestTransactionalData
 
   override implicit val settings = new Settings with PermaSettings {
     override lazy val filename = "settings-test.json"

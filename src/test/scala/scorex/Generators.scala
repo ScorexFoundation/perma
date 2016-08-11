@@ -41,13 +41,14 @@ trait Generators {
   val blockData = for {
     gen: PublicKey25519Proposition <- PropositionGen
     parentId: Array[Byte] <- bytes
+    txId: Array[Byte] <- bytes
     signature: Array[Byte] <- bytes
     target: BigInt <- Arbitrary.arbitrary[BigInt]
     puz: Sized[Array[Byte], Nat32] <- sizedBytes
     pubk: Sized[Array[Byte], Nat32] <- sizedBytes
     ticket: Ticket <- ticketGen
   } yield {
-      PermaConsensusBlockData(parentId, signature, target, puz, ticket, gen)
+      PermaConsensusBlockData(parentId, txId, Signature25519(signature),  target, puz, ticket, gen)
     }
 
 }

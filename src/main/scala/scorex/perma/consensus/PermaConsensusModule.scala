@@ -1,6 +1,7 @@
 package scorex.perma.consensus
 
 import akka.actor.ActorRef
+import scorex.block.{ConsensusData, TransactionalData}
 import scorex.consensus.{ConsensusModule, ConsensusSettings, StoredBlockchain}
 import scorex.crypto.authds.storage.KVStorage
 import scorex.crypto.hash.FastCryptographicHash
@@ -13,7 +14,8 @@ import scorex.perma.settings.PermaConstants
 import scorex.perma.settings.PermaConstants._
 import scorex.settings.Settings
 import scorex.settings.SizedConstants._
-import scorex.transaction.box.proposition.PublicKey25519Proposition
+import scorex.transaction.Transaction
+import scorex.transaction.box.proposition.{Proposition, PublicKey25519Proposition}
 import scorex.transaction.proof.Signature25519
 import scorex.transaction.state.PrivateKey25519Holder
 import scorex.transaction.wallet.Wallet
@@ -28,11 +30,11 @@ import scala.util.{Failure, Success, Try}
 /**
  * Data and functions related to a Permacoin consensus protocol
  */
-class PermaConsensusModule
+class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX]]
 (rootHash: Sized[Array[Byte], Nat32],
  val settings: Settings with ConsensusSettings,
  networkController: ActorRef,
- blockchain: StoredBlockchain[PublicKey25519Proposition, PermaConsensusBlockData, _, _])
+ blockchain: StoredBlockchain[PublicKey25519Proposition, PermaConsensusBlockData, TX, _ <: TransactionalData[TX]])
 (implicit val authDataStorage: KVStorage[Long, PermaAuthData, _])
   extends ConsensusModule[PublicKey25519Proposition, PermaConsensusBlockData]
   with ScorexLogging {
@@ -56,11 +58,11 @@ class PermaConsensusModule
 
   override def isValid(c: PermaConsensusBlockData): Boolean = {
     blockchain.blockById(c.parentId).exists { parent =>
-      val publicKey = producers(c).head.publicKey
+      val publicKey = producers(c).head
       val puz = generatePuz(parent.consensusData)
       val puzIsValid = c.puz.unsized sameElements puz.unsized
       val targetIsValid = c.target == calcTarget(parent.consensusData)
-      val ticketIsValid = validate(PublicKey25519Proposition(publicKey), c.puz, c.target, c.ticket, rootHash)
+      val ticketIsValid = validate(publicKey, c.puz.unsized, c.target, c.ticket, rootHash.unsized)
       if (puzIsValid && targetIsValid && ticketIsValid)
         true
       else {
@@ -154,33 +156,36 @@ class PermaConsensusModule
     Ticket(publicKey, s, proofs)
   }
 
-  private[consensus] def validate(acc: PubKey,
+  private[consensus] def validate(acc: PublicKey25519Proposition,
                                   puz: Array[Byte],
                                   target: BigInt,
                                   t: Ticket,
                                   rootHash: Digest): Boolean = Try {
-    val pk = acc.publicKey.unsized
-    val proofs = t.proofs
-    require(proofs.size == PermaConstants.k)
-    require(t.s.length == SSize)
+    /*
+        val pk = acc.publicKey.unsized
+        val proofs = t.proofs
+        require(proofs.size == PermaConstants.k)
+        require(t.s.length == SSize)
 
-    val sigs = NoSig +: proofs.map(_.signature)
-    val ris = proofs.map(_.segmentIndex)
-    require(ris.head == calculateIndex(pk, (BigInt(1, Hash(puz ++ pk ++ t.s)) % PermaConstants.l).toInt))
+        val sigs = NoSig +: proofs.map(_.signature)
+        val ris = proofs.map(_.segmentIndex)
+        require(ris.head == calculateIndex(pk, (BigInt(1, Hash(puz ++ pk ++ t.s)) % PermaConstants.l).toInt))
 
-    val partialProofsCheck = 1.to(PermaConstants.k).foldLeft(true) { case (partialResult, i) =>
-      val segment = proofs(i - 1).segment
-      val rc = calculateIndex(pk,
-        BigInt(1, Hash(puz ++ pk ++ proofs(i - 1).signature.signature)).mod(PermaConstants.l).toInt)
+        val partialProofsCheck = 1.to(PermaConstants.k).foldLeft(true) { case (partialResult, i) =>
+          val segment = proofs(i - 1).segment
+          val rc = calculateIndex(pk,
+            BigInt(1, Hash(puz ++ pk ++ proofs(i - 1).signature.signature)).mod(PermaConstants.l).toInt)
 
-      val check = segment.check(rootHash)
-      check && {
-        val message: Array[Byte] = Hash(puz ++ pk ++ sigs(i - 1).signature ++ segment.data)
-        val sig = sigs(i)
-        sig.isValid(acc, message)
-      } && (ris.length == i || rc == ris(i))
-    }
-    partialProofsCheck && (ticketScore(t) < target)
+          val check = segment.check(rootHash)
+          check && {
+            val message: Array[Byte] = Hash(puz ++ pk ++ sigs(i - 1).signature ++ segment.data)
+            val sig = sigs(i)
+            sig.isValid(acc, message)
+          } && (ris.length == i || rc == ris(i))
+        }
+        partialProofsCheck && (ticketScore(t) < target)
+    */
+    false
   }.getOrElse(false)
 
 

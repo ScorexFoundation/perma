@@ -14,13 +14,13 @@ import scorex.crypto.encode.Base58
 import scorex.perma.consensus.{PermaConsensusBlockData, PermaConsensusModule}
 import scorex.settings.Settings
 import scorex.transaction.Transaction
-import scorex.transaction.box.proposition.Proposition
+import scorex.transaction.box.proposition.{PublicKey25519Proposition, Proposition}
 
 @Path("/consensus")
 @Api(value = "/consensus", description = "Consensus-related calls")
-class PermaConsensusApiRoute[P <: Proposition, TX <: Transaction[P, TX], TData <: TransactionalData[TX]]
-(consensusModule: PermaConsensusModule,
- history: History[P, TX, TData, PermaConsensusBlockData],
+class PermaConsensusApiRoute[TX <: Transaction[PublicKey25519Proposition, TX], TData <: TransactionalData[TX]]
+(consensusModule: PermaConsensusModule[TX],
+ history: History[PublicKey25519Proposition, TX, TData, PermaConsensusBlockData],
  override val settings: Settings)
 (implicit val context: ActorRefFactory)
   extends ApiRoute with CommonApiFunctions {

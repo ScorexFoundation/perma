@@ -62,3 +62,9 @@ pomExtra in ThisBuild :=
     </developers>
 
 credentials in ThisBuild += Credentials(Path.userHome / ".ivy2" / ".credentials")
+
+//scalacOptions += "-verbose"
+//
+//scalacOptions += "-Ylog:all"
+//
+//scalacOptions += "-Ytyper-debug"
