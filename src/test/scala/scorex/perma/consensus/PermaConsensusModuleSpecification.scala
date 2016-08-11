@@ -30,8 +30,7 @@ with Matchers with TestAppSupport with Generators {
 
   property("PermaConsensusBlockData serialization roundtrip") {
     forAll(blockData) { bd: PermaConsensusBlockData =>
-      val decoded = consensus.parseBytes(bd.bytes).get
-
+      val decoded = PermaConsensusBlockData.parseBytes(bd.bytes).get
     }
   }
 
