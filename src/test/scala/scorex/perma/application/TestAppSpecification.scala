@@ -5,7 +5,10 @@ import akka.testkit.{ImplicitSender, TestKit}
 import org.scalatest.{Matchers, WordSpecLike}
 import scorex.block.Block
 import scorex.network.HistorySynchronizer.GetStatus
+import scorex.utils.NetworkTime
 
+import scala.concurrent.Await
+import scala.concurrent.duration._
 import scala.util.Failure
 
 class TestAppSpecification extends TestKit(ActorSystem("MySpec")) with WordSpecLike
@@ -34,16 +37,15 @@ with Matchers with TestAppSupport with ImplicitSender {
       app.historySynchronizer ! GetStatus
       expectMsg("syncing")
     }
-    /*
-        "generate next block" in {
-          app.checkGenesis()
-          Await.result(consensusModule.generateNextBlock(app.wallet), 5.second) match {
-            case None => throw new Error("block was not generated")
-            case Some(b) =>
-          }
-        }
-    */
+    "generate next block" in {
+      app.checkGenesis()
+      val timestamp = NetworkTime.time()
+      val tData = transactionalModule.generateTdata(timestamp)
+      val cFuture = consensusModule.generateCdata(transactionalModule.wallet, timestamp, tData.id)
+      Await.result(cFuture, 5.second) match {
+        case Some(cData) =>
+        case _ => throw new Error("block was not generated")
+      }
+    }
   }
-
-
 }

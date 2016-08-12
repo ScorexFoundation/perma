@@ -152,31 +152,28 @@ class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX]]
                                   target: BigInt,
                                   t: Ticket,
                                   rootHash: Digest): Boolean = Try {
-    /*
-        val pk = acc.publicKey.unsized
-        val proofs = t.proofs
-        require(proofs.size == PermaConstants.k)
-        require(t.s.length == SSize)
+    val pk = acc.publicKey.unsized
+    val proofs = t.proofs
+    require(proofs.size == PermaConstants.k)
+    require(t.s.length == SSize)
 
-        val sigs = NoSig +: proofs.map(_.signature)
-        val ris = proofs.map(_.segmentIndex)
-        require(ris.head == calculateIndex(pk, (BigInt(1, Hash(puz ++ pk ++ t.s)) % PermaConstants.l).toInt))
+    val sigs = NoSig +: proofs.map(_.signature)
+    val ris = proofs.map(_.segmentIndex)
+    require(ris.head == calculateIndex(pk, (BigInt(1, Hash(puz ++ pk ++ t.s)) % PermaConstants.l).toInt))
 
-        val partialProofsCheck = 1.to(PermaConstants.k).foldLeft(true) { case (partialResult, i) =>
-          val segment = proofs(i - 1).segment
-          val rc = calculateIndex(pk,
-            BigInt(1, Hash(puz ++ pk ++ proofs(i - 1).signature.signature)).mod(PermaConstants.l).toInt)
+    val partialProofsCheck = 1.to(PermaConstants.k).foldLeft(true) { case (partialResult, i) =>
+      val segment = proofs(i - 1).segment
+      val rc = calculateIndex(pk,
+        BigInt(1, Hash(puz ++ pk ++ proofs(i - 1).signature.signature)).mod(PermaConstants.l).toInt)
 
-          val check = segment.check(rootHash)
-          check && {
-            val message: Array[Byte] = Hash(puz ++ pk ++ sigs(i - 1).signature ++ segment.data)
-            val sig = sigs(i)
-            sig.isValid(acc, message)
-          } && (ris.length == i || rc == ris(i))
-        }
-        partialProofsCheck && (ticketScore(t) < target)
-    */
-    false
+      val check = segment.check(rootHash)
+      check && {
+        val message: Array[Byte] = Hash(puz ++ pk ++ sigs(i - 1).signature ++ segment.data)
+        val sig = sigs(i)
+        sig.isValid(acc, message)
+      } && (ris.length == i || rc == ris(i))
+    }
+    partialProofsCheck && (ticketScore(t) < target)
   }.getOrElse(false)
 
 
