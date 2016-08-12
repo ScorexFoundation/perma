@@ -2,7 +2,7 @@ package scorex.perma.consensus
 
 import akka.actor.ActorRef
 import scorex.block.TransactionalData
-import scorex.consensus.{ConsensusModule, ConsensusSettings, StoredBlockchain}
+import scorex.consensus.{ConsensusModule, ConsensusSettings, History}
 import scorex.crypto.authds.storage.KVStorage
 import scorex.crypto.hash.FastCryptographicHash
 import scorex.crypto.hash.FastCryptographicHash._
@@ -34,7 +34,7 @@ class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX]]
 (rootHash: Sized[Array[Byte], Nat32],
  val settings: Settings with ConsensusSettings,
  networkController: ActorRef,
- blockchain: StoredBlockchain[PublicKey25519Proposition, PermaConsensusBlockData, TX, _ <: TransactionalData[TX]])
+ blockchain: History[PublicKey25519Proposition, TX, _ <: TransactionalData[TX], PermaConsensusBlockData])
 (implicit val authDataStorage: KVStorage[Long, PermaAuthData, _])
   extends ConsensusModule[PublicKey25519Proposition, PermaConsensusBlockData]
   with ScorexLogging {
@@ -85,8 +85,7 @@ class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX]]
       case Success(ticket) =>
         val target = calcTarget(parent.consensusData)
         if (validate(pubKey, puz, target, ticket, rootHash)) {
-          val pId =
-            log.info("Build new block")
+          log.info("Build new block")
           Some(PermaConsensusBlockData.buildAndSign(parent.consensusData.id, txsId, target, puz, ticket, privKey))
         } else {
           log.info("Non-valid ticket")
