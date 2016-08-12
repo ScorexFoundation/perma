@@ -5,6 +5,7 @@ import io.circe.syntax._
 import scorex.block.ConsensusData
 import scorex.block.ConsensusData.BlockId
 import scorex.crypto.encode.Base58
+import scorex.perma.settings.PermaConstants
 import scorex.serialization.BytesParseable
 import scorex.settings.SizedConstants.Nat32
 import scorex.transaction.box.proposition.PublicKey25519Proposition
@@ -24,6 +25,13 @@ case class PermaConsensusBlockData(parentId: Array[Byte],
   override val BlockIdLength: Int = 64
 
   lazy val id: BlockId = signature.signature
+
+  override def score(): BigInt = {
+    val score = log2(PermaConstants.initialTarget) - log2(target)
+    if (score > 0) score else 1
+  }
+
+  private def log2(i: BigInt): BigInt = BigDecimal(math.log(i.doubleValue()) / math.log(2)).toBigInt()
 
   override lazy val json: Json = Map(
     "parentId" -> Base58.encode(parentId).asJson,

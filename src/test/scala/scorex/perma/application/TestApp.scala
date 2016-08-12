@@ -1,9 +1,9 @@
 package scorex.perma.application
 
-import scorex.NodeStateHolder
+import scorex.{block, NodeStateHolder}
 import scorex.api.http.TransactionsApiRoute
 import scorex.app.{Application, ApplicationVersion}
-import scorex.block.{BlockValidator, RewardsCalculator}
+import scorex.block.{BlockValidator, ConsensusValidator, RewardsCalculator, TransactionalValidator}
 import scorex.consensus.{History, StoredBlockchain}
 import scorex.crypto.authds.storage.KVStorage
 import scorex.crypto.encode.Base58
@@ -58,8 +58,20 @@ class TestApp(rootHash: Array[Byte], implicit val authDataStorage: KVStorage[Lon
     }
 
 
-  override val blockValidator: BlockValidator[PublicKey25519Proposition, LagonakiTransaction, SimplestTransactionalData, PermaConsensusBlockData] = _
-  override val rewardCalculator: RewardsCalculator[PublicKey25519Proposition, LagonakiTransaction, SimplestTransactionalData, PermaConsensusBlockData] = _
+  override val blockValidator: BlockValidator[PublicKey25519Proposition, LagonakiTransaction, SimplestTransactionalData, PermaConsensusBlockData] = {
+    val txValidator = new TransactionalValidator[PublicKey25519Proposition, LagonakiTransaction, SimplestTransactionalData] {
+      override def isValid(tData: SimplestTransactionalData, state: MinimalState[PublicKey25519Proposition, LagonakiTransaction]): Boolean = true
+    }
+    val cValidator = new ConsensusValidator[PermaConsensusBlockData] {
+      override def isValid(cData: PermaConsensusBlockData, history: History[_, _, _, PermaConsensusBlockData]): Boolean = true
+    }
+    new BlockValidator[PublicKey25519Proposition, LagonakiTransaction, SimplestTransactionalData, PermaConsensusBlockData](txValidator, cValidator)
+  }
+  override val rewardCalculator: RewardsCalculator[PublicKey25519Proposition, LagonakiTransaction, SimplestTransactionalData, PermaConsensusBlockData] = {
+    new RewardsCalculator[PublicKey25519Proposition, LagonakiTransaction, SimplestTransactionalData, PermaConsensusBlockData] {
+      override def rewards(block: block.Block[PublicKey25519Proposition, SimplestTransactionalData, PermaConsensusBlockData]): StateChanges[PublicKey25519Proposition] = StateChanges(Set(), Set(), 0)
+    }
+  }
 
 
   override implicit val transactionalModule = new SimpleTransactionModule(settings, mempool, state)

@@ -1,7 +1,7 @@
 package scorex.perma.consensus
 
 import akka.actor.ActorRef
-import scorex.block.{ConsensusData, TransactionalData}
+import scorex.block.TransactionalData
 import scorex.consensus.{ConsensusModule, ConsensusSettings, StoredBlockchain}
 import scorex.crypto.authds.storage.KVStorage
 import scorex.crypto.hash.FastCryptographicHash
@@ -15,7 +15,7 @@ import scorex.perma.settings.PermaConstants._
 import scorex.settings.Settings
 import scorex.settings.SizedConstants._
 import scorex.transaction.Transaction
-import scorex.transaction.box.proposition.{Proposition, PublicKey25519Proposition}
+import scorex.transaction.box.proposition.PublicKey25519Proposition
 import scorex.transaction.proof.Signature25519
 import scorex.transaction.state.PrivateKey25519Holder
 import scorex.transaction.wallet.Wallet
@@ -28,8 +28,8 @@ import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
 
 /**
- * Data and functions related to a Permacoin consensus protocol
- */
+  * Data and functions related to a Permacoin consensus protocol
+  */
 class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX]]
 (rootHash: Sized[Array[Byte], Nat32],
  val settings: Settings with ConsensusSettings,
@@ -41,7 +41,6 @@ class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX]]
 
   val BlockReward = 1000000
   val InitialTarget = PermaConstants.initialTarget
-  val initialTargetPow: BigInt = log2(InitialTarget)
   val TargetRecalculation = PermaConstants.targetRecalculation
   val AvgDelay = PermaConstants.averageDelay
   implicit val Hash = FastCryptographicHash
@@ -54,7 +53,6 @@ class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX]]
 
 
   override val BlockIdLength: Int = 64
-
 
   override def isValid(c: PermaConsensusBlockData): Boolean = {
     blockchain.blockById(c.parentId).exists { parent =>
@@ -74,12 +72,6 @@ class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX]]
   }
 
   override def producers(cdata: PermaConsensusBlockData): Seq[PubKey] = Seq(cdata.producer)
-
-
-  override def blockScore(cdata: PermaConsensusBlockData): BigInt = {
-    val score = initialTargetPow - log2(cdata.target)
-    if (score > 0) score else 1
-  }
 
   override def generateCdata(wallet: Wallet[_ <: PubKey, _], time: DataSegmentIndex, txsId: Array[Byte]): Future[Option[PermaConsensusBlockData]] = Future {
     val parent = blockchain.lastBlock
@@ -122,8 +114,8 @@ class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX]]
   override val MaxRollback: Int = settings.MaxRollback
 
   /**
-   * Puzzle to a new generate block on top of block
-   */
+    * Puzzle to a new generate block on top of block
+    */
   def generatePuz(consensusData: PermaConsensusBlockData): SizedDigest =
     Hash.hashSized(consensusData.puz.unsized ++ consensusData.ticket.s)
 
@@ -215,9 +207,6 @@ class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX]]
       currentTarget
     }
   }
-
-  private def log2(i: BigInt): BigInt = BigDecimal(math.log(i.doubleValue()) / math.log(2)).toBigInt()
-
 
 }
 
