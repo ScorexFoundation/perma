@@ -1,9 +1,9 @@
 package scorex.perma.application
 
-import scorex.NodeStateHolder
+import scorex.{block, NodeStateHolder}
 import scorex.api.http.TransactionsApiRoute
 import scorex.app.{Application, ApplicationVersion}
-import scorex.block.{BlockValidator, RewardsCalculator}
+import scorex.block.{StateChanges, StateChangesCalculator, BlockValidator}
 import scorex.consensus.{History, StoredBlockchain}
 import scorex.crypto.authds.storage.KVStorage
 import scorex.crypto.encode.Base58
@@ -59,9 +59,9 @@ class TestApp(rootHash: Array[Byte], implicit val authDataStorage: KVStorage[Lon
     val cValidator = new PermaValidator(rootHash)
     new BlockValidator[PublicKey25519Proposition, LagonakiTransaction, SimplestTransactionalData, PermaConsensusBlockData](txValidator, cValidator)
   }
-  override val rewardCalculator: RewardsCalculator[PublicKey25519Proposition, LagonakiTransaction, SimplestTransactionalData, PermaConsensusBlockData] = {
-    new RewardsCalculator[PublicKey25519Proposition, LagonakiTransaction, SimplestTransactionalData, PermaConsensusBlockData] {
-      override def rewards(block: scorex.block.Block[PublicKey25519Proposition, SimplestTransactionalData, PermaConsensusBlockData]): StateChanges[PublicKey25519Proposition] = StateChanges(Set(), Set(), 0)
+  override val rewardCalculator: StateChangesCalculator[PublicKey25519Proposition, LagonakiTransaction, SimplestTransactionalData, PermaConsensusBlockData] = {
+    new StateChangesCalculator[PublicKey25519Proposition, LagonakiTransaction, SimplestTransactionalData, PermaConsensusBlockData] {
+      override def changes(block: scorex.block.Block[PublicKey25519Proposition, SimplestTransactionalData, PermaConsensusBlockData], state: MinimalState[PublicKey25519Proposition, LagonakiTransaction]): StateChanges[PublicKey25519Proposition] = StateChanges(Set(), Set())
     }
   }
 
