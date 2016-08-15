@@ -41,8 +41,6 @@ class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX]]
 
   import PermaConsensusModule._
 
-  val BlockReward = 1000000
-
   val GenesisCreator = PublicKey25519Proposition(Sized.wrap(Array.fill(32)(0: Byte)))
   val Version: Byte = 2
 
