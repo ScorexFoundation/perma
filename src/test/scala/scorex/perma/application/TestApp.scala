@@ -1,9 +1,9 @@
 package scorex.perma.application
 
-import scorex.{block, NodeStateHolder}
+import scorex.NodeStateHolder
 import scorex.api.http.TransactionsApiRoute
 import scorex.app.{Application, ApplicationVersion}
-import scorex.block.{StateChanges, StateChangesCalculator, BlockValidator}
+import scorex.block._
 import scorex.consensus.{History, StoredBlockchain}
 import scorex.crypto.authds.storage.KVStorage
 import scorex.crypto.encode.Base58
@@ -19,6 +19,7 @@ import scorex.transaction.state.{MinimalState, PersistentLagonakiState}
 import shapeless.Sized
 
 import scala.reflect.runtime.universe._
+import scala.util.Failure
 
 class TestApp(rootHash: Array[Byte], implicit val authDataStorage: KVStorage[Long, PermaAuthData, _]) extends {
   override protected val additionalMessageSpecs: Seq[MessageSpec[_]] = Seq()
@@ -67,7 +68,7 @@ class TestApp(rootHash: Array[Byte], implicit val authDataStorage: KVStorage[Lon
 
 
   override implicit val transactionalModule = new SimpleTransactionModule(settings, stateHolder.mempool, stateHolder.state)
-  val consensusModule = new PermaConsensusModule(Sized.wrap(rootHash), settings, networkController, stateHolder.history)
+  override implicit val consensusModule = new PermaConsensusModule(Sized.wrap(rootHash), settings, networkController, stateHolder.history)
 
   override val applicationName: String = "test"
 
@@ -75,5 +76,16 @@ class TestApp(rootHash: Array[Byte], implicit val authDataStorage: KVStorage[Lon
 
   override val apiRoutes = Seq(TransactionsApiRoute(pool, settings))
   override val apiTypes = Seq(typeOf[TransactionsApiRoute])
+
+  def checkGenesis(): Unit = {
+    if (stateHolder.history.isEmpty) {
+      val genesisBlock: BType = scorex.block.Block.genesis[P, TX, TD, CD](settings.genesisTimestamp)
+      val changes = rewardCalculator.changes(genesisBlock, stateHolder.state)
+      stateHolder.appendBlock(genesisBlock, changes) match {
+        case Failure(e) => log.error("Failed to append genesis block", e)
+        case _ => log.info("Genesis block has been added to the state")
+      }
+    }
+  }.ensuring(stateHolder.history.height() >= 1)
 
 }
