@@ -3,12 +3,12 @@ package scorex.perma.application
 import scorex.NodeStateHolder
 import scorex.api.http.TransactionsApiRoute
 import scorex.app.{Application, ApplicationVersion}
-import scorex.block.{BlockValidator, ConsensusValidator, RewardsCalculator, TransactionalValidator}
+import scorex.block.{BlockValidator, RewardsCalculator}
 import scorex.consensus.{History, StoredBlockchain}
 import scorex.crypto.authds.storage.KVStorage
 import scorex.crypto.encode.Base58
 import scorex.network.message.MessageSpec
-import scorex.perma.consensus.{PermaAuthData, PermaConsensusBlockData, PermaConsensusModule}
+import scorex.perma.consensus.{PermaAuthData, PermaConsensusBlockData, PermaConsensusModule, PermaValidator}
 import scorex.perma.settings.PermaSettings
 import scorex.serialization.BytesParseable
 import scorex.settings.Settings
@@ -55,12 +55,8 @@ class TestApp(rootHash: Array[Byte], implicit val authDataStorage: KVStorage[Lon
   }
 
   override val blockValidator: BlockValidator[PublicKey25519Proposition, LagonakiTransaction, SimplestTransactionalData, PermaConsensusBlockData] = {
-    val txValidator = new TransactionalValidator[PublicKey25519Proposition, LagonakiTransaction, SimplestTransactionalData] {
-      override def isValid(tData: SimplestTransactionalData, state: MinimalState[PublicKey25519Proposition, LagonakiTransaction]): Boolean = true
-    }
-    val cValidator = new ConsensusValidator[PermaConsensusBlockData] {
-      override def isValid(cData: PermaConsensusBlockData, history: History[_, _, _, PermaConsensusBlockData]): Boolean = true
-    }
+    val txValidator = SimpleTransactionValidator
+    val cValidator = new PermaValidator(rootHash)
     new BlockValidator[PublicKey25519Proposition, LagonakiTransaction, SimplestTransactionalData, PermaConsensusBlockData](txValidator, cValidator)
   }
   override val rewardCalculator: RewardsCalculator[PublicKey25519Proposition, LagonakiTransaction, SimplestTransactionalData, PermaConsensusBlockData] = {

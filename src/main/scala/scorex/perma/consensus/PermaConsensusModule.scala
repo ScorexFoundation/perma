@@ -39,13 +39,10 @@ class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX]]
   extends ConsensusModule[PublicKey25519Proposition, PermaConsensusBlockData]
   with ScorexLogging {
 
-  val BlockReward = 1000000
-  val InitialTarget = PermaConstants.initialTarget
-  val TargetRecalculation = PermaConstants.targetRecalculation
-  val AvgDelay = PermaConstants.averageDelay
-  implicit val Hash = FastCryptographicHash
+  import PermaConsensusModule._
 
-  val SSize = 32
+  val BlockReward = 1000000
+
   val GenesisCreator = PublicKey25519Proposition(Sized.wrap(Array.fill(32)(0: Byte)))
   val Version: Byte = 2
 
@@ -53,23 +50,6 @@ class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX]]
 
 
   override val BlockIdLength: Int = 64
-
-  override def isValid(c: PermaConsensusBlockData): Boolean = {
-    blockchain.blockById(c.parentId).exists { parent =>
-      val publicKey = producers(c).head
-      val puz = generatePuz(parent.consensusData)
-      val puzIsValid = c.puz.unsized sameElements puz.unsized
-      val targetIsValid = c.target == calcTarget(parent.consensusData)
-      val ticketIsValid = validate(publicKey, c.puz.unsized, c.target, c.ticket, rootHash.unsized)
-      if (puzIsValid && targetIsValid && ticketIsValid)
-        true
-      else {
-        log.warn(s"Invalid block: puz=$puzIsValid, target=$targetIsValid && ticket=$ticketIsValid")
-        false
-      }
-    }
-
-  }
 
   override def producers(cdata: PermaConsensusBlockData): Seq[PubKey] = Seq(cdata.producer)
 
@@ -83,7 +63,7 @@ class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX]]
     val ticketTry = generate(privKey, puz)
     ticketTry match {
       case Success(ticket) =>
-        val target = calcTarget(parent.consensusData)
+        val target = calcTarget(parent.consensusData)(blockchain)
         if (validate(pubKey, puz, target, ticket, rootHash)) {
           log.info("Build new block")
           Some(PermaConsensusBlockData.buildAndSign(parent.consensusData.id, txsId, target, puz, ticket, privKey))
@@ -112,14 +92,6 @@ class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX]]
 
   override val MaxRollback: Int = settings.MaxRollback
 
-  /**
-    * Puzzle to a new generate block on top of block
-    */
-  def generatePuz(consensusData: PermaConsensusBlockData): SizedDigest =
-    Hash.hashSized(consensusData.puz.unsized ++ consensusData.ticket.s)
-
-  private val NoSig = Signature25519(Array[Byte]())
-
   private[consensus] def generate(acc: PrivateKey25519Holder, puz: Array[Byte]): Try[Ticket] = Try {
 
     val privateKey = acc.secret.unsized
@@ -145,6 +117,41 @@ class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX]]
     }._3.toIndexedSeq.ensuring(_.size == PermaConstants.k)
 
     Ticket(publicKey, s, proofs)
+  }
+
+}
+
+object PermaConsensusModule extends ScorexLogging {
+  implicit val Hash = FastCryptographicHash
+  val TargetRecalculation = PermaConstants.targetRecalculation
+  val InitialTarget = PermaConstants.initialTarget
+  val AvgDelay = PermaConstants.averageDelay
+  private val NoSig = Signature25519(Array[Byte]())
+  val SSize = 32
+
+  /**
+    * Puzzle to a new generate block on top of block
+    */
+  def generatePuz(consensusData: PermaConsensusBlockData): SizedDigest =
+    Hash.hashSized(consensusData.puz.unsized ++ consensusData.ticket.s)
+
+  private val targetBuf = TrieMap[String, BigInt]()
+
+  private[consensus] def calcTarget(consensusData: PermaConsensusBlockData)
+                                   (implicit blockchain: History[_, _, _, PermaConsensusBlockData]): BigInt = {
+    val currentTarget = consensusData.target
+    val height = blockchain.heightOf(consensusData.id).get
+    if (height % TargetRecalculation == 0 && height > TargetRecalculation) {
+      def calc = {
+        val lastAvgDuration: BigInt = blockchain.averageDelay(consensusData.parentId, TargetRecalculation).get
+        val newTarget = currentTarget * lastAvgDuration / 1000 / AvgDelay
+        log.debug(s"Height: $height, target:$newTarget vs $currentTarget, lastAvgDuration:$lastAvgDuration")
+        newTarget
+      }
+      targetBuf.getOrElseUpdate(consensusData.encodedId, calc)
+    } else {
+      currentTarget
+    }
   }
 
   private[consensus] def validate(acc: PublicKey25519Proposition,
@@ -177,32 +184,13 @@ class PermaConsensusModule[TX <: Transaction[PublicKey25519Proposition, TX]]
   }.getOrElse(false)
 
 
-  private[consensus] def ticketScore(t: Ticket): BigInt = if (t.proofs.nonEmpty) {
-    BigInt(1, Hash(t.proofs.map(_.signature.signature).reduce(_ ++ _)))
-  } else 0
-
-
   //calculate index of i-th segment
   private[consensus] def calculateIndex(pubKey: Array[Byte], i: Int): Long =
     BigInt(1, Hash(pubKey ++ BigInt(i).toByteArray)).mod(PermaConstants.n).toLong
 
-  private val targetBuf = TrieMap[String, BigInt]()
-
-  private def calcTarget(consensusData: PermaConsensusBlockData): BigInt = {
-    val currentTarget = consensusData.target
-    val height = blockchain.heightOf(consensusData.id).get
-    if (height % TargetRecalculation == 0 && height > TargetRecalculation) {
-      def calc = {
-        val lastAvgDuration: BigInt = blockchain.averageDelay(consensusData.parentId, TargetRecalculation).get
-        val newTarget = currentTarget * lastAvgDuration / 1000 / AvgDelay
-        log.debug(s"Height: $height, target:$newTarget vs $currentTarget, lastAvgDuration:$lastAvgDuration")
-        newTarget
-      }
-      targetBuf.getOrElseUpdate(consensusData.encodedId, calc)
-    } else {
-      currentTarget
-    }
-  }
+  private[consensus] def ticketScore(t: Ticket): BigInt = if (t.proofs.nonEmpty) {
+    BigInt(1, Hash(t.proofs.map(_.signature.signature).reduce(_ ++ _)))
+  } else 0
 
 }
 
