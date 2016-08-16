@@ -6,6 +6,7 @@ import akka.actor.ActorRefFactory
 import akka.http.scaladsl.server.Route
 import io.circe.syntax._
 import io.swagger.annotations._
+import scorex.NodeStateHolder
 import scorex.api.http.ApiError._
 import scorex.api.http.{ApiRoute, CommonApiFunctions}
 import scorex.block.TransactionalData
@@ -20,7 +21,7 @@ import scorex.transaction.box.proposition.{PublicKey25519Proposition, Propositio
 @Api(value = "/consensus", description = "Consensus-related calls")
 class PermaConsensusApiRoute[TX <: Transaction[PublicKey25519Proposition, TX], TData <: TransactionalData[TX]]
 (consensusModule: PermaConsensusModule[TX],
- history: History[PublicKey25519Proposition, TX, TData, PermaConsensusBlockData],
+ stateHolder: NodeStateHolder[PublicKey25519Proposition, TX, TData, PermaConsensusBlockData],
  override val settings: Settings)
 (implicit val context: ActorRefFactory)
   extends ApiRoute with CommonApiFunctions {
@@ -35,7 +36,7 @@ class PermaConsensusApiRoute[TX <: Transaction[PublicKey25519Proposition, TX], T
   def target: Route = {
     path("target") {
       getJsonRoute {
-        ("target" -> history.lastBlock.consensusData.target).asJson
+        ("target" -> stateHolder.history.lastBlock.consensusData.target).asJson
       }
     }
   }
@@ -48,7 +49,7 @@ class PermaConsensusApiRoute[TX <: Transaction[PublicKey25519Proposition, TX], T
   def targetId: Route = {
     path("target" / Segment) { case encodedSignature =>
       getJsonRoute {
-        history.blockById(encodedSignature) match {
+        stateHolder.history.blockById(encodedSignature) match {
           case Some(block) => ("target" -> block.consensusData.target).asJson
           case None => blockNotExists
         }
@@ -61,7 +62,7 @@ class PermaConsensusApiRoute[TX <: Transaction[PublicKey25519Proposition, TX], T
   def puz: Route = {
     path("puz") {
       getJsonRoute {
-        ("puz" -> Base58.encode(history.lastBlock.consensusData.puz)).asJson
+        ("puz" -> Base58.encode(stateHolder.history.lastBlock.consensusData.puz)).asJson
       }
     }
   }
@@ -74,7 +75,7 @@ class PermaConsensusApiRoute[TX <: Transaction[PublicKey25519Proposition, TX], T
   def puzId: Route = {
     path("puz" / Segment) { case encodedSignature =>
       getJsonRoute {
-        history.blockById(encodedSignature) match {
+        stateHolder.history.blockById(encodedSignature) match {
           case Some(block) => ("baseTarget" -> Base58.encode(block.consensusData.puz)).asJson
           case None => blockNotExists
         }
@@ -87,7 +88,7 @@ class PermaConsensusApiRoute[TX <: Transaction[PublicKey25519Proposition, TX], T
   def algo: Route = {
     path("algo") {
       getJsonRoute {
-        ("consensusAlgo" -> "nxt").asJson
+        ("consensusAlgo" -> "permacoin").asJson
       }
     }
   }
