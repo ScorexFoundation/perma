@@ -1,12 +1,27 @@
 {
   "p2p": {
-    "port": 9093
+    "bindAddress": "0.0.0.0",
+    "upnp": true,
+    "upnpGatewayTimeout": 7000,
+    "upnpDiscoverTimeout": 3000,
+    "port": 9080,
+    "maxConnections": 10
   },
-  "rpcPort": 9094,
-  "walletSeed": "aaa",
-  "walletPassword": "aaa",
+  "walletDir": "/tmp/scorex-test/dealer/wallet",
+  "walletPassword": "cookies",
+  "walletSeed": "FQgbSAm6swGbtqA3NE8PttijPhT4N3Ufh4bHFAkyVnQz",
+  "dataDir": "/tmp/scorex-test/dealer/data",
+  "rpcPort": 9081,
+  "rpcAllowed": [],
+  "maxRollback": 100,
+  "offlineGeneration": true,
+  "cors": true,
+  "testScript": true,
+  "apiKeyHash": "GmVvcpx1BRUPDZiADbZ7a6zgQV3Sgj2GhNoEiTH9Drdx",
   "perma": {
-    "treeDir": "/tmp/scorex-test/data/tree",
-    "authDataStorage": "authDataStorage.mapDB"
-  }
+    "isTrustedDealer": true,
+    "treeDir": "/tmp/scorex-test/dealer/data/tree",
+    "authDataStorage": "permatree.db"
+  },
+  "blockGenerationDelay": 1500
 }
